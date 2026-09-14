@@ -1,0 +1,42 @@
+[
+    {
+        "Id":  "custom_office_pkg",
+        "Name":  "Microsoft Office Custom Package (Google Drive)",
+        "Category":  "Productivity",
+        "Description":  "Pre-configured Microsoft Office full installer hosted on your personal Google Drive.",
+        "DriveUrl":  "https://drive.google.com/",
+        "EstimatedSize":  "2.8 GB",
+        "Version":  "2024 ProPlus",
+        "Notes":  "Replace this URL in cloud_apps.json with your own Google Drive sharing link."
+    },
+    {
+        "Id":  "adobe_suite_pkg",
+        "Name":  "Photoshop \u0026 Graphic Suite (Google Drive)",
+        "Category":  "Design",
+        "Description":  "Graphic design software installer package hosted on Google Drive.",
+        "DriveUrl":  "https://drive.google.com/",
+        "EstimatedSize":  "3.2 GB",
+        "Version":  "Latest",
+        "Notes":  "Click \u0027Open in Browser\u0027 to access your cloud file directly."
+    },
+    {
+        "Id":  "cad_engineering_pkg",
+        "Name":  "AutoCAD / Civil Engineering Tools (Google Drive)",
+        "Category":  "Engineering",
+        "Description":  "CAD engineering setup packages and templates repository.",
+        "DriveUrl":  "https://drive.google.com/",
+        "EstimatedSize":  "4.5 GB",
+        "Version":  "2024",
+        "Notes":  "Direct link or folder link to your personal Drive storage."
+    },
+    {
+        "Id":  "offline_drivers_pkg",
+        "Name":  "Snappy Driver Origin Full Pack (Google Drive)",
+        "Category":  "Drivers",
+        "Description":  "Gigantic full offline driver packs for network, audio, chipset, and GPUs.",
+        "DriveUrl":  "https://drive.google.com/",
+        "EstimatedSize":  "25 GB",
+        "Version":  "SDIO Latest",
+        "Notes":  "Store huge driver pack on cloud to save USB flash drive space."
+    }
+]
