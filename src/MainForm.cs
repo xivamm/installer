@@ -181,13 +181,22 @@ namespace TechInstaller
             _topButtonsPanel = new FlowLayoutPanel();
             _topButtonsPanel.Dock = DockStyle.Right;
             _topButtonsPanel.FlowDirection = FlowDirection.RightToLeft;
-            _topButtonsPanel.Width = 420;
+            _topButtonsPanel.Width = 600;
             _topButtonsPanel.Height = 52;
             _topButtonsPanel.BackColor = Color.Transparent;
             _topButtonsPanel.Padding = new Padding(0, 8, 0, 0);
 
-            _btnReload = CreateStyledButton("🔄 Reload", ColHover, 95);
+            _btnReload = CreateStyledButton("🔄 Reload", ColHover, 90);
             _btnReload.Click += delegate { LoadAppCatalog(); LoadCloudAppCatalog(); };
+
+            Button btnSyncGitHub = CreateStyledButton("☁️ Sync from GitHub", Color.FromArgb(14, 165, 233), 160);
+            btnSyncGitHub.Click += delegate {
+                string msg;
+                bool ok = ConfigManager.FetchFromGitHub(out msg);
+                LoadCloudAppCatalog();
+                LoadAppCatalog();
+                MessageBox.Show(msg, ok ? "GitHub Sync Complete" : "GitHub Sync Notice", MessageBoxButtons.OK, ok ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+            };
 
             _btnDownloadAll = CreateStyledButton("⬇️ Cache All to USB", Color.FromArgb(37, 99, 235), 145);
             _btnDownloadAll.Click += delegate { DownloadAllMissingToCache(); };
@@ -196,6 +205,7 @@ namespace TechInstaller
             _btnOpenCache.Click += delegate { OpenCacheFolder(); };
 
             _topButtonsPanel.Controls.Add(_btnReload);
+            _topButtonsPanel.Controls.Add(btnSyncGitHub);
             _topButtonsPanel.Controls.Add(_btnDownloadAll);
             _topButtonsPanel.Controls.Add(_btnOpenCache);
 
@@ -678,12 +688,19 @@ namespace TechInstaller
                 }
             };
 
+            Button btnCloudPush = CreateStyledButton("🚀 Push to GitHub", Color.FromArgb(79, 70, 229), 145);
+            btnCloudPush.Click += delegate {
+                string msg;
+                ConfigManager.PushToGitHub(out msg);
+            };
+
             FlowLayoutPanel leftFlow = new FlowLayoutPanel();
             leftFlow.Dock = DockStyle.Fill;
             leftFlow.BackColor = Color.Transparent;
             leftFlow.Controls.Add(_btnCloudOpen);
             leftFlow.Controls.Add(btnCloudAdd);
             leftFlow.Controls.Add(btnCloudDelete);
+            leftFlow.Controls.Add(btnCloudPush);
             leftFlow.Controls.Add(_btnCloudEditConfig);
             leftFlow.Controls.Add(_btnCloudReload);
 

@@ -10,6 +10,8 @@ namespace TechInstaller
     {
         private static readonly string ConfigFileName = "apps.json";
         private static readonly string CloudConfigFileName = "cloud_apps.json";
+        private static readonly string GitHubCloudUrl = "https://raw.githubusercontent.com/xivamm/installer/main/output/cloud_apps.json";
+        private static readonly string GitHubAppsUrl = "https://raw.githubusercontent.com/xivamm/installer/main/output/apps.json";
 
         public static string GetAppDirectory()
         {
@@ -222,6 +224,70 @@ namespace TechInstaller
             list.Add(item4);
 
             return list;
+        }
+
+        public static bool FetchFromGitHub(out string resultMessage)
+        {
+            try
+            {
+                using (System.Net.WebClient client = new System.Net.WebClient())
+                {
+                    client.Headers.Add("User-Agent", "TechInstaller-App");
+                    string cloudJson = client.DownloadString(GitHubCloudUrl);
+                    if (!string.IsNullOrEmpty(cloudJson) && cloudJson.Contains("["))
+                    {
+                        JavaScriptSerializer serializer = new JavaScriptSerializer();
+                        List<CloudAppItem> fetchedCloud = serializer.Deserialize<List<CloudAppItem>>(cloudJson);
+                        if (fetchedCloud != null && fetchedCloud.Count > 0)
+                        {
+                            SaveCloudApps(fetchedCloud);
+                        }
+                    }
+
+                    try
+                    {
+                        string appsJson = client.DownloadString(GitHubAppsUrl);
+                        if (!string.IsNullOrEmpty(appsJson) && appsJson.Contains("["))
+                        {
+                            JavaScriptSerializer serializer = new JavaScriptSerializer();
+                            List<AppItem> fetchedApps = serializer.Deserialize<List<AppItem>>(appsJson);
+                            if (fetchedApps != null && fetchedApps.Count > 0)
+                            {
+                                SaveApps(fetchedApps);
+                            }
+                        }
+                    }
+                    catch { }
+
+                    resultMessage = "Successfully fetched the latest apps and links from GitHub!";
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                resultMessage = "Could not fetch from GitHub: " + ex.Message;
+                return false;
+            }
+        }
+
+        public static bool PushToGitHub(out string resultMessage)
+        {
+            try
+            {
+                ProcessStartInfo psi = new ProcessStartInfo();
+                psi.FileName = "powershell.exe";
+                psi.Arguments = "-NoExit -ExecutionPolicy Bypass -Command \"git add .; git commit -m 'Update apps catalog from TechInstaller'; git push origin main\"";
+                psi.WorkingDirectory = GetAppDirectory();
+                psi.UseShellExecute = true;
+                Process.Start(psi);
+                resultMessage = "Launched Git push process in PowerShell window.";
+                return true;
+            }
+            catch (Exception ex)
+            {
+                resultMessage = "Error launching git push: " + ex.Message;
+                return false;
+            }
         }
 
         private static string PrettyPrintJson(string json)
