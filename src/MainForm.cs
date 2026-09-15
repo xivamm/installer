@@ -279,6 +279,43 @@ namespace TechInstaller
             this.Controls.Add(_panelTools);
             this.Controls.Add(_navPanel);
             this.Controls.Add(_topPanel);
+
+            this.Load += delegate { AdjustSplitters(); };
+            this.Shown += delegate { AdjustSplitters(); };
+            this.Resize += delegate { AdjustSplitters(); };
+        }
+
+        private void AdjustSplitters()
+        {
+            try
+            {
+                int targetRight = 390;
+                if (_splitContainer != null && _splitContainer.Width > 0)
+                {
+                    int maxDist = _splitContainer.Width - targetRight;
+                    if (maxDist >= _splitContainer.Panel1MinSize)
+                    {
+                        _splitContainer.SplitterDistance = maxDist;
+                    }
+                    else
+                    {
+                        _splitContainer.SplitterDistance = Math.Max(_splitContainer.Panel1MinSize, (int)(_splitContainer.Width * 0.58));
+                    }
+                }
+                if (_cloudSplitContainer != null && _cloudSplitContainer.Width > 0)
+                {
+                    int maxDist = _cloudSplitContainer.Width - targetRight;
+                    if (maxDist >= _cloudSplitContainer.Panel1MinSize)
+                    {
+                        _cloudSplitContainer.SplitterDistance = maxDist;
+                    }
+                    else
+                    {
+                        _cloudSplitContainer.SplitterDistance = Math.Max(_cloudSplitContainer.Panel1MinSize, (int)(_cloudSplitContainer.Width * 0.58));
+                    }
+                }
+            }
+            catch { }
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
@@ -523,7 +560,10 @@ namespace TechInstaller
             _splitContainer.Dock = DockStyle.Fill;
             _splitContainer.BackColor = ColBorder;
             _splitContainer.SplitterWidth = 3;
-            _splitContainer.SplitterDistance = 680;
+            _splitContainer.FixedPanel = FixedPanel.Panel2;
+            _splitContainer.Panel1MinSize = 420;
+            _splitContainer.Panel2MinSize = 340;
+            _splitContainer.SplitterDistance = 750;
 
             // Software Grid Left
             _gridApps = new DataGridView();
@@ -562,14 +602,14 @@ namespace TechInstaller
 
             // Columns
             DataGridViewCheckBoxColumn colCheck = new DataGridViewCheckBoxColumn();
-            colCheck.Width = 34;
+            colCheck.Width = 32;
             colCheck.HeaderText = "";
             colCheck.Name = "ColCheck";
             colCheck.Resizable = DataGridViewTriState.False;
             _gridApps.Columns.Add(colCheck);
 
             DataGridViewImageColumn colIcon = new DataGridViewImageColumn();
-            colIcon.Width = 36;
+            colIcon.Width = 34;
             colIcon.HeaderText = "";
             colIcon.Name = "ColIcon";
             colIcon.ImageLayout = DataGridViewImageCellLayout.Zoom;
@@ -587,7 +627,7 @@ namespace TechInstaller
             DataGridViewTextBoxColumn colCat = new DataGridViewTextBoxColumn();
             colCat.HeaderText = "Category";
             colCat.Name = "ColCategory";
-            colCat.Width = 115;
+            colCat.Width = 135;
             colCat.ReadOnly = true;
             colCat.DefaultCellStyle.ForeColor = ColTextSecondary;
             _gridApps.Columns.Add(colCat);
@@ -595,7 +635,7 @@ namespace TechInstaller
             DataGridViewTextBoxColumn colSize = new DataGridViewTextBoxColumn();
             colSize.HeaderText = "Size";
             colSize.Name = "ColSize";
-            colSize.Width = 75;
+            colSize.Width = 70;
             colSize.ReadOnly = true;
             colSize.DefaultCellStyle.ForeColor = ColTextSecondary;
             _gridApps.Columns.Add(colSize);
@@ -603,21 +643,21 @@ namespace TechInstaller
             DataGridViewTextBoxColumn colSource = new DataGridViewTextBoxColumn();
             colSource.HeaderText = "Source";
             colSource.Name = "ColSource";
-            colSource.Width = 115;
+            colSource.Width = 110;
             colSource.ReadOnly = true;
             _gridApps.Columns.Add(colSource);
 
             DataGridViewTextBoxColumn colStatus = new DataGridViewTextBoxColumn();
             colStatus.HeaderText = "Status";
             colStatus.Name = "ColStatus";
-            colStatus.Width = 130;
+            colStatus.Width = 125;
             colStatus.ReadOnly = true;
             _gridApps.Columns.Add(colStatus);
 
             DataGridViewTextBoxColumn colArrow = new DataGridViewTextBoxColumn();
             colArrow.HeaderText = "";
             colArrow.Name = "ColArrow";
-            colArrow.Width = 26;
+            colArrow.Width = 24;
             colArrow.ReadOnly = true;
             colArrow.DefaultCellStyle.ForeColor = ColTextMuted;
             colArrow.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
@@ -639,9 +679,9 @@ namespace TechInstaller
             // Details Card Top
             _detailsPanel = new Panel();
             _detailsPanel.Dock = DockStyle.Top;
-            _detailsPanel.Height = 250;
+            _detailsPanel.Height = 254;
             _detailsPanel.BackColor = ColCard;
-            _detailsPanel.Padding = new Padding(16, 14, 16, 10);
+            _detailsPanel.Padding = new Padding(16, 12, 16, 10);
             _detailsPanel.Paint += delegate(object s, PaintEventArgs pe) {
                 using (Pen p = new Pen(ColBorder, 1))
                 {
@@ -651,73 +691,87 @@ namespace TechInstaller
 
             _picDetailsIcon = new PictureBox();
             _picDetailsIcon.Size = new Size(48, 48);
-            _picDetailsIcon.Location = new Point(16, 14);
+            _picDetailsIcon.Location = new Point(16, 12);
             _picDetailsIcon.SizeMode = PictureBoxSizeMode.Zoom;
             _picDetailsIcon.BackColor = Color.Transparent;
 
             _lblDetailsTitle = new Label();
             _lblDetailsTitle.Text = "Software Information";
-            _lblDetailsTitle.Font = new Font("Segoe UI", 12.0F, FontStyle.Bold);
+            _lblDetailsTitle.Font = new Font("Segoe UI", 11.5F, FontStyle.Bold);
             _lblDetailsTitle.ForeColor = ColTextPrimary;
-            _lblDetailsTitle.Location = new Point(72, 14);
-            _lblDetailsTitle.Size = new Size(340, 24);
+            _lblDetailsTitle.Location = new Point(72, 12);
+            _lblDetailsTitle.Size = new Size(300, 22);
+            _lblDetailsTitle.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             _lblDetailsTitle.AutoEllipsis = true;
 
             _lblDetailsCategoryBadge = CreateBadgeLabel("Category", ColAccentCyan);
-            _lblDetailsCategoryBadge.Location = new Point(72, 40);
-
             _lblDetailsTypeBadge = CreateBadgeLabel("Type", ColAccentGreen);
-            _lblDetailsTypeBadge.Location = new Point(190, 40);
 
-            // Info Key-Value Table
+            FlowLayoutPanel badgesPanel = new FlowLayoutPanel();
+            badgesPanel.Location = new Point(72, 36);
+            badgesPanel.Size = new Size(300, 26);
+            badgesPanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            badgesPanel.FlowDirection = FlowDirection.LeftToRight;
+            badgesPanel.WrapContents = false;
+            badgesPanel.BackColor = Color.Transparent;
+            badgesPanel.Controls.Add(_lblDetailsCategoryBadge);
+            badgesPanel.Controls.Add(_lblDetailsTypeBadge);
+
+            // Info Key-Value Table (2 columns, 4 rows for clean responsive fit)
             TableLayoutPanel infoTable = new TableLayoutPanel();
-            infoTable.Location = new Point(16, 72);
-            infoTable.Size = new Size(420, 48);
+            infoTable.Location = new Point(16, 68);
+            infoTable.Size = new Size(350, 80);
             infoTable.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            infoTable.ColumnCount = 4;
-            infoTable.RowCount = 2;
-            infoTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 18F));
-            infoTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 32F));
-            infoTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 18F));
-            infoTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 32F));
+            infoTable.ColumnCount = 2;
+            infoTable.RowCount = 4;
+            infoTable.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 65F));
+            infoTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
             infoTable.Controls.Add(CreateMutedLabel("Size:"), 0, 0);
             _lblValSize = CreateBoldValueLabel("-");
+            _lblValSize.Dock = DockStyle.Fill;
+            _lblValSize.AutoEllipsis = true;
             infoTable.Controls.Add(_lblValSize, 1, 0);
 
-            infoTable.Controls.Add(CreateMutedLabel("Status:"), 2, 0);
+            infoTable.Controls.Add(CreateMutedLabel("Status:"), 0, 1);
             _lblValStatus = CreateBoldValueLabel("-");
-            infoTable.Controls.Add(_lblValStatus, 3, 0);
+            _lblValStatus.Dock = DockStyle.Fill;
+            _lblValStatus.AutoEllipsis = true;
+            infoTable.Controls.Add(_lblValStatus, 1, 1);
 
-            infoTable.Controls.Add(CreateMutedLabel("Source:"), 0, 1);
+            infoTable.Controls.Add(CreateMutedLabel("Source:"), 0, 2);
             _lblValSource = CreateBoldValueLabel("-");
-            infoTable.Controls.Add(_lblValSource, 1, 1);
+            _lblValSource.Dock = DockStyle.Fill;
+            _lblValSource.AutoEllipsis = true;
+            infoTable.Controls.Add(_lblValSource, 1, 2);
 
-            infoTable.Controls.Add(CreateMutedLabel("Switch:"), 2, 1);
+            infoTable.Controls.Add(CreateMutedLabel("Switch:"), 0, 3);
             _lblValSwitch = CreateBoldValueLabel("-");
             _lblValSwitch.Font = new Font("Consolas", 8.5F);
-            infoTable.Controls.Add(_lblValSwitch, 3, 1);
+            _lblValSwitch.Dock = DockStyle.Fill;
+            _lblValSwitch.AutoEllipsis = true;
+            infoTable.Controls.Add(_lblValSwitch, 1, 3);
 
             _txtDetailsDesc = new TextBox();
-            _txtDetailsDesc.Location = new Point(16, 126);
-            _txtDetailsDesc.Width = 420;
-            _txtDetailsDesc.Height = 72;
+            _txtDetailsDesc.Location = new Point(16, 154);
+            _txtDetailsDesc.Size = new Size(350, 56);
             _txtDetailsDesc.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             _txtDetailsDesc.Multiline = true;
             _txtDetailsDesc.ReadOnly = true;
             _txtDetailsDesc.BackColor = ColBg;
             _txtDetailsDesc.ForeColor = ColTextPrimary;
             _txtDetailsDesc.BorderStyle = BorderStyle.FixedSingle;
-            _txtDetailsDesc.Font = new Font("Segoe UI", 9.0F);
+            _txtDetailsDesc.Font = new Font("Segoe UI", 8.5F);
 
             // Quick Actions Links
             FlowLayoutPanel detailsActions = new FlowLayoutPanel();
-            detailsActions.Location = new Point(16, 206);
-            detailsActions.Size = new Size(420, 36);
+            detailsActions.Location = new Point(16, 216);
+            detailsActions.Size = new Size(350, 34);
             detailsActions.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             detailsActions.FlowDirection = FlowDirection.LeftToRight;
+            detailsActions.WrapContents = true;
 
-            _btnDetailsOpenUrl = CreatePillButton("🌐 Homepage / Info", ColCardAlt, ColAccentBlue, 155, 30);
+            _btnDetailsOpenUrl = CreatePillButton("🌐 Homepage / Info", ColCardAlt, ColAccentBlue, 150, 30);
             _btnDetailsOpenUrl.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
             _btnDetailsOpenUrl.Click += delegate { OpenAppHomepage(_selectedApp); };
 
@@ -730,8 +784,7 @@ namespace TechInstaller
 
             _detailsPanel.Controls.Add(_picDetailsIcon);
             _detailsPanel.Controls.Add(_lblDetailsTitle);
-            _detailsPanel.Controls.Add(_lblDetailsCategoryBadge);
-            _detailsPanel.Controls.Add(_lblDetailsTypeBadge);
+            _detailsPanel.Controls.Add(badgesPanel);
             _detailsPanel.Controls.Add(infoTable);
             _detailsPanel.Controls.Add(_txtDetailsDesc);
             _detailsPanel.Controls.Add(detailsActions);
@@ -739,25 +792,25 @@ namespace TechInstaller
             // Live Terminal Header
             _logHeaderPanel = new Panel();
             _logHeaderPanel.Dock = DockStyle.Top;
-            _logHeaderPanel.Height = 34;
+            _logHeaderPanel.Height = 32;
             _logHeaderPanel.BackColor = ColCardAlt;
-            _logHeaderPanel.Padding = new Padding(12, 6, 12, 6);
+            _logHeaderPanel.Padding = new Padding(12, 5, 12, 5);
 
             _lblLogIndicator = new Label();
             _lblLogIndicator.Text = "●";
             _lblLogIndicator.ForeColor = ColAccentGreen;
-            _lblLogIndicator.Location = new Point(12, 8);
+            _lblLogIndicator.Location = new Point(12, 7);
             _lblLogIndicator.AutoSize = true;
-            _lblLogIndicator.Font = new Font("Segoe UI", 10.0F, FontStyle.Bold);
+            _lblLogIndicator.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
 
             _lblLogTitle = new Label();
-            _lblLogTitle.Text = "LIVE INSTALLATION CONSOLE";
+            _lblLogTitle.Text = "INSTALLATION CONSOLE";
             _lblLogTitle.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
             _lblLogTitle.ForeColor = ColTextSecondary;
             _lblLogTitle.AutoSize = true;
-            _lblLogTitle.Location = new Point(28, 9);
+            _lblLogTitle.Location = new Point(28, 8);
 
-            _btnClearLog = CreatePillButton("🧹 Clear", ColCard, ColTextSecondary, 65, 24);
+            _btnClearLog = CreatePillButton("🧹 Clear", ColCard, ColTextSecondary, 65, 22);
             _btnClearLog.Font = new Font("Segoe UI", 8.0F);
             _btnClearLog.Dock = DockStyle.Right;
             _btnClearLog.Click += delegate { _rtbLog.Clear(); };
@@ -924,7 +977,10 @@ namespace TechInstaller
             _cloudSplitContainer.Dock = DockStyle.Fill;
             _cloudSplitContainer.BackColor = ColBorder;
             _cloudSplitContainer.SplitterWidth = 3;
-            _cloudSplitContainer.SplitterDistance = 680;
+            _cloudSplitContainer.FixedPanel = FixedPanel.Panel2;
+            _cloudSplitContainer.Panel1MinSize = 420;
+            _cloudSplitContainer.Panel2MinSize = 340;
+            _cloudSplitContainer.SplitterDistance = 750;
 
             // Grid Left
             _gridCloudApps = new DataGridView();
@@ -962,7 +1018,7 @@ namespace TechInstaller
             EnableDoubleBuffering(_gridCloudApps);
 
             DataGridViewImageColumn cIcon = new DataGridViewImageColumn();
-            cIcon.Width = 36;
+            cIcon.Width = 34;
             cIcon.HeaderText = "";
             cIcon.Name = "CIcon";
             cIcon.ImageLayout = DataGridViewImageCellLayout.Zoom;
@@ -980,7 +1036,7 @@ namespace TechInstaller
             DataGridViewTextBoxColumn cCat = new DataGridViewTextBoxColumn();
             cCat.HeaderText = "Category";
             cCat.Name = "CCat";
-            cCat.Width = 115;
+            cCat.Width = 135;
             cCat.ReadOnly = true;
             cCat.DefaultCellStyle.ForeColor = ColTextSecondary;
             _gridCloudApps.Columns.Add(cCat);
@@ -996,7 +1052,7 @@ namespace TechInstaller
             DataGridViewTextBoxColumn cSize = new DataGridViewTextBoxColumn();
             cSize.HeaderText = "Size";
             cSize.Name = "CSize";
-            cSize.Width = 80;
+            cSize.Width = 70;
             cSize.ReadOnly = true;
             cSize.DefaultCellStyle.ForeColor = ColTextSecondary;
             _gridCloudApps.Columns.Add(cSize);
@@ -1004,7 +1060,7 @@ namespace TechInstaller
             DataGridViewTextBoxColumn cArrow = new DataGridViewTextBoxColumn();
             cArrow.HeaderText = "";
             cArrow.Name = "CArrow";
-            cArrow.Width = 26;
+            cArrow.Width = 24;
             cArrow.ReadOnly = true;
             cArrow.DefaultCellStyle.ForeColor = ColTextMuted;
             cArrow.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
@@ -1019,81 +1075,91 @@ namespace TechInstaller
             _cloudDetailsPanel = new Panel();
             _cloudDetailsPanel.Dock = DockStyle.Fill;
             _cloudDetailsPanel.BackColor = ColCard;
-            _cloudDetailsPanel.Padding = new Padding(18);
+            _cloudDetailsPanel.Padding = new Padding(18, 12, 18, 10);
 
             _picCloudIcon = new PictureBox();
             _picCloudIcon.Size = new Size(48, 48);
-            _picCloudIcon.Location = new Point(18, 14);
+            _picCloudIcon.Location = new Point(18, 12);
             _picCloudIcon.SizeMode = PictureBoxSizeMode.Zoom;
             _picCloudIcon.BackColor = Color.Transparent;
 
             _lblCloudTitle = new Label();
             _lblCloudTitle.Text = "Application Package Details";
-            _lblCloudTitle.Font = new Font("Segoe UI", 12.0F, FontStyle.Bold);
+            _lblCloudTitle.Font = new Font("Segoe UI", 11.5F, FontStyle.Bold);
             _lblCloudTitle.ForeColor = ColTextPrimary;
-            _lblCloudTitle.Location = new Point(74, 14);
-            _lblCloudTitle.Size = new Size(340, 24);
+            _lblCloudTitle.Location = new Point(74, 12);
+            _lblCloudTitle.Size = new Size(300, 22);
+            _lblCloudTitle.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             _lblCloudTitle.AutoEllipsis = true;
 
             _lblCloudCategoryBadge = CreateBadgeLabel("Category", ColAccentCyan);
-            _lblCloudCategoryBadge.Location = new Point(74, 40);
-
             _lblCloudVersionBadge = CreateBadgeLabel("Version", ColAccentGreen);
-            _lblCloudVersionBadge.Location = new Point(180, 40);
+
+            FlowLayoutPanel cloudBadges = new FlowLayoutPanel();
+            cloudBadges.Location = new Point(74, 36);
+            cloudBadges.Size = new Size(300, 26);
+            cloudBadges.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            cloudBadges.FlowDirection = FlowDirection.LeftToRight;
+            cloudBadges.WrapContents = false;
+            cloudBadges.BackColor = Color.Transparent;
+            cloudBadges.Controls.Add(_lblCloudCategoryBadge);
+            cloudBadges.Controls.Add(_lblCloudVersionBadge);
 
             TableLayoutPanel cloudMetaTable = new TableLayoutPanel();
-            cloudMetaTable.Location = new Point(18, 72);
-            cloudMetaTable.Size = new Size(420, 48);
+            cloudMetaTable.Location = new Point(18, 68);
+            cloudMetaTable.Size = new Size(350, 60);
             cloudMetaTable.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-            cloudMetaTable.ColumnCount = 4;
-            cloudMetaTable.RowCount = 2;
-            cloudMetaTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));
-            cloudMetaTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30F));
-            cloudMetaTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));
-            cloudMetaTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30F));
+            cloudMetaTable.ColumnCount = 2;
+            cloudMetaTable.RowCount = 3;
+            cloudMetaTable.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 75F));
+            cloudMetaTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
             cloudMetaTable.Controls.Add(CreateMutedLabel("Category:"), 0, 0);
             _lblCloudValCat = CreateBoldValueLabel("-");
+            _lblCloudValCat.Dock = DockStyle.Fill;
+            _lblCloudValCat.AutoEllipsis = true;
             cloudMetaTable.Controls.Add(_lblCloudValCat, 1, 0);
 
-            cloudMetaTable.Controls.Add(CreateMutedLabel("Version:"), 2, 0);
+            cloudMetaTable.Controls.Add(CreateMutedLabel("Version:"), 0, 1);
             _lblCloudValVer = CreateBoldValueLabel("-");
-            cloudMetaTable.Controls.Add(_lblCloudValVer, 3, 0);
+            _lblCloudValVer.Dock = DockStyle.Fill;
+            _lblCloudValVer.AutoEllipsis = true;
+            cloudMetaTable.Controls.Add(_lblCloudValVer, 1, 1);
 
-            cloudMetaTable.Controls.Add(CreateMutedLabel("Est. Size:"), 0, 1);
+            cloudMetaTable.Controls.Add(CreateMutedLabel("Est. Size:"), 0, 2);
             _lblCloudValSize = CreateBoldValueLabel("-");
-            cloudMetaTable.Controls.Add(_lblCloudValSize, 1, 1);
+            _lblCloudValSize.Dock = DockStyle.Fill;
+            _lblCloudValSize.AutoEllipsis = true;
+            cloudMetaTable.Controls.Add(_lblCloudValSize, 1, 2);
 
             Label lblDescHeader = new Label();
             lblDescHeader.Text = "Description & Technician Notes:";
             lblDescHeader.ForeColor = ColTextSecondary;
-            lblDescHeader.Font = new Font("Segoe UI", 9.0F, FontStyle.Bold);
-            lblDescHeader.Location = new Point(18, 130);
+            lblDescHeader.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            lblDescHeader.Location = new Point(18, 134);
             lblDescHeader.AutoSize = true;
 
             _txtCloudDesc = new TextBox();
-            _txtCloudDesc.Location = new Point(18, 150);
-            _txtCloudDesc.Width = 420;
-            _txtCloudDesc.Height = 100;
+            _txtCloudDesc.Location = new Point(18, 154);
+            _txtCloudDesc.Size = new Size(350, 75);
             _txtCloudDesc.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             _txtCloudDesc.Multiline = true;
             _txtCloudDesc.ReadOnly = true;
             _txtCloudDesc.BackColor = ColBg;
             _txtCloudDesc.ForeColor = ColTextPrimary;
             _txtCloudDesc.BorderStyle = BorderStyle.FixedSingle;
-            _txtCloudDesc.Font = new Font("Segoe UI", 9.0F);
+            _txtCloudDesc.Font = new Font("Segoe UI", 8.5F);
 
             Label lblUrlHeader = new Label();
             lblUrlHeader.Text = "Google Drive Target Link:";
             lblUrlHeader.ForeColor = ColTextSecondary;
-            lblUrlHeader.Font = new Font("Segoe UI", 9.0F, FontStyle.Bold);
-            lblUrlHeader.Location = new Point(18, 260);
+            lblUrlHeader.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            lblUrlHeader.Location = new Point(18, 235);
             lblUrlHeader.AutoSize = true;
 
             _txtCloudUrl = new TextBox();
-            _txtCloudUrl.Location = new Point(18, 280);
-            _txtCloudUrl.Width = 420;
-            _txtCloudUrl.Height = 24;
+            _txtCloudUrl.Location = new Point(18, 255);
+            _txtCloudUrl.Size = new Size(350, 24);
             _txtCloudUrl.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             _txtCloudUrl.ReadOnly = true;
             _txtCloudUrl.BackColor = ColBg;
@@ -1101,15 +1167,16 @@ namespace TechInstaller
             _txtCloudUrl.BorderStyle = BorderStyle.FixedSingle;
             _txtCloudUrl.Font = new Font("Segoe UI", 9.0F);
 
-            _btnCloudLaunchDirect = CreatePillButton("🚀 Open Google Drive Download Page", ColAccentGreen, Color.White, 320, 42);
-            _btnCloudLaunchDirect.Location = new Point(18, 318);
-            _btnCloudLaunchDirect.Font = new Font("Segoe UI", 10.0F, FontStyle.Bold);
+            _btnCloudLaunchDirect = CreatePillButton("🚀 Open Google Drive Download Page", ColAccentGreen, Color.White, 350, 38);
+            _btnCloudLaunchDirect.Location = new Point(18, 287);
+            _btnCloudLaunchDirect.Size = new Size(350, 38);
+            _btnCloudLaunchDirect.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            _btnCloudLaunchDirect.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
             _btnCloudLaunchDirect.Click += delegate { LaunchSelectedCloudApp(); };
 
             _cloudDetailsPanel.Controls.Add(_picCloudIcon);
             _cloudDetailsPanel.Controls.Add(_lblCloudTitle);
-            _cloudDetailsPanel.Controls.Add(_lblCloudCategoryBadge);
-            _cloudDetailsPanel.Controls.Add(_lblCloudVersionBadge);
+            _cloudDetailsPanel.Controls.Add(cloudBadges);
             _cloudDetailsPanel.Controls.Add(cloudMetaTable);
             _cloudDetailsPanel.Controls.Add(lblDescHeader);
             _cloudDetailsPanel.Controls.Add(_txtCloudDesc);
