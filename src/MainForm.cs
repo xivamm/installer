@@ -290,33 +290,30 @@ namespace TechInstaller
             try
             {
                 int targetRight = 390;
-                if (_splitContainer != null && _splitContainer.Width > 0)
+                if (_splitContainer != null && _splitContainer.Width > 500)
                 {
                     int maxDist = _splitContainer.Width - targetRight;
-                    if (maxDist >= _splitContainer.Panel1MinSize)
+                    if (maxDist > 250)
                     {
+                        _splitContainer.Panel1MinSize = 300;
+                        _splitContainer.Panel2MinSize = 260;
                         _splitContainer.SplitterDistance = maxDist;
                     }
-                    else
-                    {
-                        _splitContainer.SplitterDistance = Math.Max(_splitContainer.Panel1MinSize, (int)(_splitContainer.Width * 0.58));
-                    }
                 }
-                if (_cloudSplitContainer != null && _cloudSplitContainer.Width > 0)
+                if (_cloudSplitContainer != null && _cloudSplitContainer.Width > 500)
                 {
                     int maxDist = _cloudSplitContainer.Width - targetRight;
-                    if (maxDist >= _cloudSplitContainer.Panel1MinSize)
+                    if (maxDist > 250)
                     {
+                        _cloudSplitContainer.Panel1MinSize = 300;
+                        _cloudSplitContainer.Panel2MinSize = 260;
                         _cloudSplitContainer.SplitterDistance = maxDist;
-                    }
-                    else
-                    {
-                        _cloudSplitContainer.SplitterDistance = Math.Max(_cloudSplitContainer.Panel1MinSize, (int)(_cloudSplitContainer.Width * 0.58));
                     }
                 }
             }
             catch { }
         }
+
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
@@ -561,9 +558,6 @@ namespace TechInstaller
             _splitContainer.BackColor = ColBorder;
             _splitContainer.SplitterWidth = 3;
             _splitContainer.FixedPanel = FixedPanel.Panel2;
-            _splitContainer.Panel1MinSize = 420;
-            _splitContainer.Panel2MinSize = 340;
-            _splitContainer.SplitterDistance = 750;
 
             // Software Grid Left
             _gridApps = new DataGridView();
@@ -978,9 +972,6 @@ namespace TechInstaller
             _cloudSplitContainer.BackColor = ColBorder;
             _cloudSplitContainer.SplitterWidth = 3;
             _cloudSplitContainer.FixedPanel = FixedPanel.Panel2;
-            _cloudSplitContainer.Panel1MinSize = 420;
-            _cloudSplitContainer.Panel2MinSize = 340;
-            _cloudSplitContainer.SplitterDistance = 750;
 
             // Grid Left
             _gridCloudApps = new DataGridView();
