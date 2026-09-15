@@ -378,10 +378,18 @@ namespace TechInstaller
                 }
             }
 
-            string folderName = "DriverBooster";
+            string folderName = "Tools";
             if (app.Id.IndexOf("driver", StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 folderName = "DriverBooster";
+            }
+            else if (app.Id == "crystaldiskinfo")
+            {
+                folderName = "CrystalDiskInfo";
+            }
+            else if (app.Id == "cpuz")
+            {
+                folderName = "CPU-Z";
             }
             else
             {
@@ -446,18 +454,29 @@ namespace TechInstaller
 
             // Find executable
             string targetExe = null;
-            string directExe = Path.Combine(targetDir, "DriverBoosterPortable.exe");
-            if (File.Exists(directExe))
+            if (app.Id == "crystaldiskinfo")
             {
-                targetExe = directExe;
+                string cdiExe = Path.Combine(targetDir, "DiskInfo64.exe");
+                if (File.Exists(cdiExe)) targetExe = cdiExe;
             }
-            else
+            else if (app.Id == "cpuz")
+            {
+                string cpuzExe = Path.Combine(targetDir, "cpuz_x64.exe");
+                if (File.Exists(cpuzExe)) targetExe = cpuzExe;
+            }
+            else if (app.Id.IndexOf("driver", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                string directExe = Path.Combine(targetDir, "DriverBoosterPortable.exe");
+                if (File.Exists(directExe)) targetExe = directExe;
+            }
+
+            if (string.IsNullOrEmpty(targetExe))
             {
                 string[] exeCandidates = Directory.GetFiles(targetDir, "*.exe", SearchOption.AllDirectories);
                 foreach (string candidate in exeCandidates)
                 {
                     string fn = Path.GetFileName(candidate).ToLowerInvariant();
-                    if (fn.Contains("driver") || fn.Contains("booster") || fn.Contains("portable"))
+                    if (fn.Contains("64") || fn.Contains("x64") || fn.Contains("driver") || fn.Contains("booster") || fn.Contains("diskinfo") || fn.Contains("cpuz") || fn.Contains("portable"))
                     {
                         targetExe = candidate;
                         break;
@@ -476,12 +495,7 @@ namespace TechInstaller
             }
 
             // Create Desktop Shortcut
-            string shortcutTitle = "IObit Driver Booster";
-            if (app.Id.IndexOf("driver", StringComparison.OrdinalIgnoreCase) < 0)
-            {
-                shortcutTitle = app.Name;
-            }
-
+            string shortcutTitle = app.Name.Replace(" (Portable)", "").Trim();
             string userDesktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
             string desktopLnk = Path.Combine(userDesktop, shortcutTitle + ".lnk");
             CreateWindowsShortcut(targetExe, desktopLnk, app.Name);

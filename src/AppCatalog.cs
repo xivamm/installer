@@ -24,6 +24,34 @@ namespace TechInstaller
                 SpecialAction = "portable_driver_booster"
             });
 
+            list.Add(new AppItem
+            {
+                Id = "crystaldiskinfo",
+                Name = "CrystalDiskInfo (Portable)",
+                Category = "Drivers & Hardware",
+                Description = "SSD/HDD health & SMART monitoring tool. Shows drive health %, temperature, and warning status (C:\\Tools\\CrystalDiskInfo).",
+                DownloadUrl = "https://downloads.sourceforge.net/project/crystaldiskinfo/9.4.4/CrystalDiskInfo9_4_4.zip",
+                SilentArgs = "",
+                CacheFileName = "CrystalDiskInfo9_4_4.zip",
+                PresetTags = "essential,recommended,driver,all",
+                EstimatedSizeMB = 8,
+                SpecialAction = "portable_extract"
+            });
+
+            list.Add(new AppItem
+            {
+                Id = "cpuz",
+                Name = "CPU-Z (Portable)",
+                Category = "Drivers & Hardware",
+                Description = "CPU, Motherboard, and Dual-Channel RAM hardware specification detection tool (C:\\Tools\\CPU-Z).",
+                DownloadUrl = "https://download.cpuid.com/cpu-z/cpu-z_2.11-en.zip",
+                SilentArgs = "",
+                CacheFileName = "cpu-z_2.11-en.zip",
+                PresetTags = "essential,recommended,driver,all",
+                EstimatedSizeMB = 4,
+                SpecialAction = "portable_extract"
+            });
+
             // --- RUNTIMES ---
             list.Add(new AppItem
             {

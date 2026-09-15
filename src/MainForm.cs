@@ -929,7 +929,77 @@ namespace TechInstaller
             _toolsFlowPanel.Padding = new Padding(16);
             _toolsFlowPanel.BackColor = ColBg;
 
-            // 1. Device Manager
+            // -------------------------------------------------------------
+            // SECTION 1: ⚡ PERFORMANCE & 1-CLICK TWEAKS
+            // -------------------------------------------------------------
+            _toolsFlowPanel.Controls.Add(CreateSectionHeader("⚡ PERFORMANCE & 1-CLICK WINDOWS TWEAKS", ColAccentAmber));
+
+            _toolsFlowPanel.Controls.Add(CreateToolCard(
+                "⚡ Ultimate Performance Plan",
+                "Enables Windows Ultimate Performance plan to prevent CPU throttling and maximize FPS.",
+                "Activate Ultimate Plan",
+                delegate {
+                    LogToolMessage("Activating Ultimate Performance Power Plan...");
+                    string res = SystemToolsManager.EnableUltimatePerformance();
+                    LogToolMessage(res);
+                },
+                ColAccentAmber
+            ));
+
+            _toolsFlowPanel.Controls.Add(CreateToolCard(
+                "👁️ Show File Extensions & Hidden",
+                "Unhides file extensions (.exe, .zip, .iso) and hidden files in File Explorer.",
+                "Show Extensions & Hidden",
+                delegate {
+                    LogToolMessage("Updating Explorer folder view settings...");
+                    string res = SystemToolsManager.ToggleShowFileExtensions();
+                    LogToolMessage(res);
+                },
+                ColAccentAmber
+            ));
+
+            _toolsFlowPanel.Controls.Add(CreateToolCard(
+                "🔋 Disable Hibernation (Save 8-16 GB)",
+                "Deletes hiberfil.sys and disables hibernation to immediately reclaim SSD storage.",
+                "Disable Hibernation",
+                delegate {
+                    LogToolMessage("Disabling Windows Hibernation...");
+                    string res = SystemToolsManager.DisableHibernation();
+                    LogToolMessage(res);
+                },
+                ColAccentAmber
+            ));
+
+            _toolsFlowPanel.Controls.Add(CreateToolCard(
+                "🧹 1-Click Temp & Junk Cleaner",
+                "Safely cleans %temp%, Windows Temp, and Prefetch junk cache to free up disk space.",
+                "Clean Temp Files",
+                delegate {
+                    LogToolMessage("Cleaning temporary and cache junk files...");
+                    string res = SystemToolsManager.CleanJunkAndTempFiles();
+                    LogToolMessage(res);
+                },
+                ColAccentAmber
+            ));
+
+            Panel lastSec1Card = CreateToolCard(
+                "🩺 System File Repair (SFC & DISM)",
+                "Scans and repairs corrupted Windows system files and component store.",
+                "Run SFC & DISM Scan",
+                delegate {
+                    LogToolMessage("Launching elevated System File Checker & DISM repair...");
+                    SystemToolsManager.RunSystemFileCheck();
+                },
+                ColAccentAmber
+            );
+            _toolsFlowPanel.Controls.Add(lastSec1Card);
+            _toolsFlowPanel.SetFlowBreak(lastSec1Card, true);
+
+            // -------------------------------------------------------------
+            // SECTION 2: 🖥️ HARDWARE & DIAGNOSTICS
+            // -------------------------------------------------------------
+            _toolsFlowPanel.Controls.Add(CreateSectionHeader("🖥️ HARDWARE, DRIVERS & DIAGNOSTICS", ColAccentBlue));
+
             _toolsFlowPanel.Controls.Add(CreateToolCard(
                 "🖥️ Device Manager",
                 "Check hardware devices, installed components, and missing drivers.",
@@ -937,10 +1007,10 @@ namespace TechInstaller
                 delegate {
                     LogToolMessage("Launching Windows Device Manager...");
                     SystemToolsManager.OpenDeviceManager();
-                }
+                },
+                ColAccentBlue
             ));
 
-            // 1b. IObit Driver Booster Portable
             _toolsFlowPanel.Controls.Add(CreateToolCard(
                 "⚡ IObit Driver Booster",
                 "Extract and run Driver Booster to automatically scan & install missing hardware drivers.",
@@ -949,10 +1019,114 @@ namespace TechInstaller
                     LogToolMessage("Checking IObit Driver Booster Portable...");
                     string res = SystemToolsManager.LaunchOrDeployDriverBooster();
                     LogToolMessage(res);
-                }
+                },
+                ColAccentBlue
             ));
 
-            // 2. Date & Time Settings
+            _toolsFlowPanel.Controls.Add(CreateToolCard(
+                "💿 CrystalDiskInfo (Portable)",
+                "Inspect SSD/HDD health, remaining life percentage, temperature, and SMART status.",
+                "🚀 Launch CrystalDiskInfo",
+                delegate {
+                    LogToolMessage("Checking CrystalDiskInfo Portable...");
+                    string res = SystemToolsManager.LaunchCrystalDiskInfo();
+                    LogToolMessage(res);
+                },
+                ColAccentBlue
+            ));
+
+            Panel lastSec2Card = CreateToolCard(
+                "⚙️ CPU-Z (Portable)",
+                "View detailed CPU clock speeds, Motherboard model, and Dual-Channel RAM specs.",
+                "🚀 Launch CPU-Z",
+                delegate {
+                    LogToolMessage("Checking CPU-Z Portable...");
+                    string res = SystemToolsManager.LaunchCpuZ();
+                    LogToolMessage(res);
+                },
+                ColAccentBlue
+            );
+            _toolsFlowPanel.Controls.Add(lastSec2Card);
+            _toolsFlowPanel.SetFlowBreak(lastSec2Card, true);
+
+            // -------------------------------------------------------------
+            // SECTION 3: 🛠️ WINDOWS ADMINISTRATION
+            // -------------------------------------------------------------
+            _toolsFlowPanel.Controls.Add(CreateSectionHeader("🛠️ WINDOWS SYSTEM ADMINISTRATION", ColAccentGreen));
+
+            _toolsFlowPanel.Controls.Add(CreateToolCard(
+                "💾 Disk Management (diskmgmt.msc)",
+                "Partition drives, initialize new SSD/HDD, shrink/extend volumes, and create Drive D:.",
+                "Open diskmgmt.msc",
+                delegate {
+                    LogToolMessage("Opening Windows Disk Management console...");
+                    SystemToolsManager.OpenDiskManagement();
+                },
+                ColAccentGreen
+            ));
+
+            _toolsFlowPanel.Controls.Add(CreateToolCard(
+                "📋 System Properties (sysdm.cpl)",
+                "Rename PC, change Workgroup, and configure Pagefile / Virtual Memory.",
+                "Open sysdm.cpl",
+                delegate {
+                    LogToolMessage("Opening System Properties (Advanced)...");
+                    SystemToolsManager.OpenSystemPropertiesAdvanced();
+                },
+                ColAccentGreen
+            ));
+
+            _toolsFlowPanel.Controls.Add(CreateToolCard(
+                "🚀 Task Manager & Startup Apps",
+                "Inspect real-time CPU/RAM usage, kill hanging processes, and manage startup programs.",
+                "Open Task Manager",
+                delegate {
+                    LogToolMessage("Launching Windows Task Manager...");
+                    SystemToolsManager.OpenTaskManager();
+                },
+                ColAccentGreen
+            ));
+
+            _toolsFlowPanel.Controls.Add(CreateToolCard(
+                "⚙️ Windows Services (services.msc)",
+                "Manage background Windows services, start/stop services, and set startup types.",
+                "Open services.msc",
+                delegate {
+                    LogToolMessage("Opening Windows Services console...");
+                    SystemToolsManager.OpenServicesManager();
+                },
+                ColAccentGreen
+            ));
+
+            _toolsFlowPanel.Controls.Add(CreateToolCard(
+                "🛡️ Windows Defender Security",
+                "Open Windows Security settings, Virus & Threat Protection, and file exclusions.",
+                "Open Windows Security",
+                delegate {
+                    LogToolMessage("Opening Windows Security...");
+                    SystemToolsManager.OpenWindowsSecurity();
+                },
+                ColAccentGreen
+            ));
+
+            Panel lastSec3Card = CreateToolCard(
+                "🔑 Windows Activation & License",
+                "Check genuine activation status or enter product key in Windows Settings.",
+                "Open Activation",
+                delegate {
+                    LogToolMessage("Opening Windows Activation & Licensing panel...");
+                    SystemToolsManager.OpenActivationSettings();
+                },
+                ColAccentGreen
+            );
+            _toolsFlowPanel.Controls.Add(lastSec3Card);
+            _toolsFlowPanel.SetFlowBreak(lastSec3Card, true);
+
+            // -------------------------------------------------------------
+            // SECTION 4: 🌐 NETWORK & CONNECTIVITY
+            // -------------------------------------------------------------
+            _toolsFlowPanel.Controls.Add(CreateSectionHeader("🌐 NETWORK, TIME & DNS CONFIGURATION", Color.FromArgb(56, 189, 248)));
+
             _toolsFlowPanel.Controls.Add(CreateToolCard(
                 "🕒 Date & Time Settings",
                 "Open Windows Settings to configure clock, automatic time, and calendar.",
@@ -963,7 +1137,6 @@ namespace TechInstaller
                 }
             ));
 
-            // 3. Time Sync Now
             _toolsFlowPanel.Controls.Add(CreateToolCard(
                 "🔄 Sync Internet Time Now",
                 "Force resynchronization of system clock with Windows Internet Time servers.",
@@ -975,7 +1148,6 @@ namespace TechInstaller
                 }
             ));
 
-            // 4. Time Zone Settings
             _toolsFlowPanel.Controls.Add(CreateToolCard(
                 "🌐 Time Zone Configuration",
                 "Open Time Zone selector to change system region (e.g. UTC+08:00 Manila).",
@@ -986,18 +1158,16 @@ namespace TechInstaller
                 }
             ));
 
-            // 5. Desktop Background & Personalization
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "🖼️ Desktop Background & Themes",
-                "Change desktop wallpaper, lock screen, colors, and Windows dark/light mode.",
-                "Change Background",
+                "🔌 Network Adapters (ncpa.cpl)",
+                "Open classic Network Connections control panel to inspect Ethernet and WiFi.",
+                "Open ncpa.cpl",
                 delegate {
-                    LogToolMessage("Opening Personalization & Wallpaper settings...");
-                    SystemToolsManager.OpenDesktopBackgroundSettings();
+                    LogToolMessage("Opening Network Connections panel...");
+                    SystemToolsManager.OpenNetworkConnections();
                 }
             ));
 
-            // 6. Flush DNS
             _toolsFlowPanel.Controls.Add(CreateToolCard(
                 "🧹 Flush DNS Resolver Cache",
                 "Clears DNS resolver cache to fix internet loading issues and resolve hostnames.",
@@ -1009,7 +1179,6 @@ namespace TechInstaller
                 }
             ));
 
-            // 7. Set Cloudflare DNS
             _toolsFlowPanel.Controls.Add(CreateToolCard(
                 "⚡ Set Cloudflare DNS (1.1.1.1)",
                 "Configures high-speed, privacy-focused Cloudflare DNS (1.1.1.1 & 1.0.0.1).",
@@ -1021,7 +1190,6 @@ namespace TechInstaller
                 }
             ));
 
-            // 8. Set Google DNS
             _toolsFlowPanel.Controls.Add(CreateToolCard(
                 "⚡ Set Google DNS (8.8.8.8)",
                 "Configures fast Google Public DNS servers (8.8.8.8 & 8.8.4.4).",
@@ -1033,8 +1201,7 @@ namespace TechInstaller
                 }
             ));
 
-            // 9. Reset DNS to DHCP
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
+            Panel lastSec4Card = CreateToolCard(
                 "🔄 Reset DNS to Automatic (DHCP)",
                 "Restores automatic router/ISP DNS server assignment on all active adapters.",
                 "Reset to DHCP",
@@ -1043,31 +1210,16 @@ namespace TechInstaller
                     string res = SystemToolsManager.SetDnsServers("dhcp");
                     LogToolMessage(res);
                 }
-            ));
+            );
+            _toolsFlowPanel.Controls.Add(lastSec4Card);
+            _toolsFlowPanel.SetFlowBreak(lastSec4Card, true);
 
-            // 10. Network Connections
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "🔌 Network Adapters (ncpa.cpl)",
-                "Open classic Network Connections control panel to inspect Ethernet and WiFi.",
-                "Open ncpa.cpl",
-                delegate {
-                    LogToolMessage("Opening Network Connections panel...");
-                    SystemToolsManager.OpenNetworkConnections();
-                }
-            ));
+            // -------------------------------------------------------------
+            // SECTION 5: 💻 AUTOMATION & PERSONALIZATION
+            // -------------------------------------------------------------
+            Color ColAccentPurple = Color.FromArgb(192, 132, 252);
+            _toolsFlowPanel.Controls.Add(CreateSectionHeader("💻 AUTOMATION, SCRIPTS & CUSTOMIZATION", ColAccentPurple));
 
-            // 11. Windows Activation Settings
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "🔑 Windows Activation & License",
-                "Check genuine activation status or enter product key in Windows Settings.",
-                "Open Activation",
-                delegate {
-                    LogToolMessage("Opening Windows Activation & Licensing panel...");
-                    SystemToolsManager.OpenActivationSettings();
-                }
-            ));
-
-            // 12. Run Custom PowerShell Script
             _toolsFlowPanel.Controls.Add(CreateToolCard(
                 "▶️ Run Custom Script (custom.ps1)",
                 "Auto-runs your custom PowerShell code in scripts\\custom.ps1 as Administrator.",
@@ -1075,10 +1227,10 @@ namespace TechInstaller
                 delegate {
                     LogToolMessage("Launching custom PowerShell script (scripts\\custom.ps1)...");
                     SystemToolsManager.OpenCustomPowerShellScript();
-                }
+                },
+                ColAccentPurple
             ));
 
-            // 13. Edit Custom Script in Notepad
             _toolsFlowPanel.Controls.Add(CreateToolCard(
                 "📝 Edit custom.ps1 Script",
                 "Opens scripts\\custom.ps1 in Notepad so you can paste or edit your commands.",
@@ -1086,10 +1238,10 @@ namespace TechInstaller
                 delegate {
                     LogToolMessage("Opening scripts\\custom.ps1 in Notepad...");
                     SystemToolsManager.EditCustomPowerShellScript();
-                }
+                },
+                ColAccentPurple
             ));
 
-            // 14. Open Admin PowerShell Console
             _toolsFlowPanel.Controls.Add(CreateToolCard(
                 "💻 Administrator PowerShell",
                 "Opens a clean elevated PowerShell console window ready for any commands.",
@@ -1097,7 +1249,19 @@ namespace TechInstaller
                 delegate {
                     LogToolMessage("Opening Administrator PowerShell console...");
                     SystemToolsManager.OpenElevatedPowerShell();
-                }
+                },
+                ColAccentPurple
+            ));
+
+            _toolsFlowPanel.Controls.Add(CreateToolCard(
+                "🖼️ Desktop Background & Themes",
+                "Change desktop wallpaper, lock screen, colors, and Windows dark/light mode.",
+                "Change Background",
+                delegate {
+                    LogToolMessage("Opening Personalization & Wallpaper settings...");
+                    SystemToolsManager.OpenDesktopBackgroundSettings();
+                },
+                ColAccentPurple
             ));
 
             _panelTools.Controls.Add(_toolsFlowPanel);
@@ -1105,7 +1269,39 @@ namespace TechInstaller
             _panelTools.Controls.Add(toolsBanner);
         }
 
+        private Panel CreateSectionHeader(string title, Color accentColor)
+        {
+            Panel header = new Panel();
+            header.Width = 1080;
+            header.Height = 36;
+            header.Margin = new Padding(10, 16, 10, 6);
+            header.BackColor = Color.FromArgb(20, 29, 47);
+
+            Panel bar = new Panel();
+            bar.Width = 5;
+            bar.Dock = DockStyle.Left;
+            bar.BackColor = accentColor;
+
+            Label lbl = new Label();
+            lbl.Text = title;
+            lbl.Font = new Font("Segoe UI", 10.0F, FontStyle.Bold);
+            lbl.ForeColor = accentColor;
+            lbl.Location = new Point(14, 8);
+            lbl.AutoSize = true;
+
+            header.Controls.Add(lbl);
+            header.Controls.Add(bar);
+
+            _toolsFlowPanel.SetFlowBreak(header, true);
+            return header;
+        }
+
         private Panel CreateToolCard(string title, string description, string buttonText, EventHandler onClick)
+        {
+            return CreateToolCard(title, description, buttonText, onClick, ColAccentBlue);
+        }
+
+        private Panel CreateToolCard(string title, string description, string buttonText, EventHandler onClick, Color titleColor)
         {
             Panel card = new Panel();
             card.Width = 340;
@@ -1116,8 +1312,8 @@ namespace TechInstaller
 
             Label lblT = new Label();
             lblT.Text = title;
-            lblT.Font = new Font("Segoe UI", 10.5F, FontStyle.Bold);
-            lblT.ForeColor = ColAccentBlue;
+            lblT.Font = new Font("Segoe UI", 10.0F, FontStyle.Bold);
+            lblT.ForeColor = titleColor;
             lblT.AutoSize = true;
             lblT.Location = new Point(12, 10);
 
@@ -1129,7 +1325,7 @@ namespace TechInstaller
             lblD.Width = 316;
             lblD.Height = 44;
 
-            Button btn = CreateStyledButton(buttonText, ColHover, 190);
+            Button btn = CreateStyledButton(buttonText, ColHover, 200);
             btn.Height = 32;
             btn.Location = new Point(12, 88);
             btn.Click += onClick;

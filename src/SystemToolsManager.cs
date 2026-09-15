@@ -2,7 +2,9 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Win32;
 
 namespace TechInstaller
 {
@@ -56,6 +58,38 @@ namespace TechInstaller
             catch
             {
                 Process.Start("slmgr.vbs", "/dli");
+            }
+        }
+
+        public static void OpenDiskManagement()
+        {
+            Process.Start("diskmgmt.msc");
+        }
+
+        public static void OpenSystemPropertiesAdvanced()
+        {
+            Process.Start("sysdm.cpl");
+        }
+
+        public static void OpenTaskManager()
+        {
+            Process.Start("taskmgr.exe");
+        }
+
+        public static void OpenServicesManager()
+        {
+            Process.Start("services.msc");
+        }
+
+        public static void OpenWindowsSecurity()
+        {
+            try
+            {
+                Process.Start("windowsdefender:");
+            }
+            catch
+            {
+                Process.Start("control.exe", "/name Microsoft.WindowsDefender");
             }
         }
 
@@ -197,28 +231,162 @@ namespace TechInstaller
             }
         }
 
+        [DllImport("shell32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern void SHChangeNotify(int wEventId, uint uFlags, IntPtr dwItem1, IntPtr dwItem2);
+
+        public static string EnableUltimatePerformance()
+        {
+            try
+            {
+                string outScheme = RunSilentCommand("powercfg.exe", "-duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61");
+                string guid = "e9a42b02-d5df-448d-aa00-03f14749eb61";
+                int idx = outScheme.IndexOf("GUID: ");
+                if (idx >= 0)
+                {
+                    int start = idx + 6;
+                    if (start + 36 <= outScheme.Length)
+                    {
+                        guid = outScheme.Substring(start, 36).Trim();
+                    }
+                }
+                RunSilentCommand("powercfg.exe", "-setactive " + guid);
+                return "Ultimate Performance Power Plan activated successfully!";
+            }
+            catch (Exception ex)
+            {
+                return "Error configuring power plan: " + ex.Message;
+            }
+        }
+
+        public static string ToggleShowFileExtensions()
+        {
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced", true))
+                {
+                    if (key != null)
+                    {
+                        key.SetValue("HideFileExt", 0, RegistryValueKind.DWord);
+                        key.SetValue("Hidden", 1, RegistryValueKind.DWord);
+                    }
+                }
+
+                SHChangeNotify(0x08000000, 0x0000, IntPtr.Zero, IntPtr.Zero);
+                return "Applied: File extensions (.exe, .zip, etc.) and hidden files are now visible!";
+            }
+            catch (Exception ex)
+            {
+                return "Failed to update registry: " + ex.Message;
+            }
+        }
+
+        public static string DisableHibernation()
+        {
+            try
+            {
+                RunSilentCommand("powercfg.exe", "-h off");
+                return "Hibernation disabled (hiberfil.sys deleted). Saved 8GB to 16GB storage on C: Drive!";
+            }
+            catch (Exception ex)
+            {
+                return "Error disabling hibernation: " + ex.Message;
+            }
+        }
+
+        public static string CleanJunkAndTempFiles()
+        {
+            int deletedFiles = 0;
+            long freedBytes = 0;
+
+            string[] targetDirs = new string[]
+            {
+                Path.GetTempPath(),
+                @"C:\Windows\Temp",
+                @"C:\Windows\Prefetch"
+            };
+
+            foreach (string dir in targetDirs)
+            {
+                if (!Directory.Exists(dir)) continue;
+                try
+                {
+                    DirectoryInfo di = new DirectoryInfo(dir);
+                    foreach (FileInfo fi in di.GetFiles("*", SearchOption.AllDirectories))
+                    {
+                        try
+                        {
+                            long len = fi.Length;
+                            fi.Delete();
+                            freedBytes += len;
+                            deletedFiles++;
+                        }
+                        catch { }
+                    }
+                    foreach (DirectoryInfo sub in di.GetDirectories())
+                    {
+                        try
+                        {
+                            sub.Delete(true);
+                        }
+                        catch { }
+                    }
+                }
+                catch { }
+            }
+
+            double freedMB = Math.Round((double)freedBytes / 1048576.0, 1);
+            return string.Format("Cleaned {0} temporary files, freed approx {1} MB of disk space!", deletedFiles, freedMB);
+        }
+
+        public static void RunSystemFileCheck()
+        {
+            try
+            {
+                ProcessStartInfo psi = new ProcessStartInfo();
+                psi.FileName = "cmd.exe";
+                psi.Arguments = "/k title System File Integrity Repair && echo Starting SFC Scannow... && sfc /scannow && echo. && echo Running DISM RestoreHealth... && dism /online /cleanup-image /restorehealth && echo. && echo [DONE] System check complete.";
+                psi.UseShellExecute = true;
+                Process.Start(psi);
+            }
+            catch { }
+        }
+
         public static string LaunchOrDeployDriverBooster()
         {
-            string portableExe = @"C:\Tools\DriverBooster\DriverBoosterPortable.exe";
+            return LaunchOrDeployPortableApp("IObit Driver Booster", "DriverBoosterPortable.zip", @"C:\Tools\DriverBooster", "DriverBoosterPortable.exe");
+        }
+
+        public static string LaunchCrystalDiskInfo()
+        {
+            return LaunchOrDeployPortableApp("CrystalDiskInfo", "CrystalDiskInfo9_4_4.zip", @"C:\Tools\CrystalDiskInfo", "DiskInfo64.exe");
+        }
+
+        public static string LaunchCpuZ()
+        {
+            return LaunchOrDeployPortableApp("CPU-Z", "cpu-z_2.11-en.zip", @"C:\Tools\CPU-Z", "cpuz_x64.exe");
+        }
+
+        public static string LaunchOrDeployPortableApp(string appTitle, string zipName, string targetDir, string mainExeName)
+        {
+            string portableExe = Path.Combine(targetDir, mainExeName);
             if (File.Exists(portableExe))
             {
                 Process.Start(portableExe);
-                return "Launched Driver Booster from " + portableExe;
+                return "Launched " + appTitle + " from " + portableExe;
             }
 
             string cacheDir = ConfigManager.GetCacheDirectory();
-            string zipPath = Path.Combine(cacheDir, "DriverBoosterPortable.zip");
+            string zipPath = Path.Combine(cacheDir, zipName);
             if (!File.Exists(zipPath))
             {
-                zipPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DriverBoosterPortable.zip");
+                zipPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, zipName);
             }
 
             if (!File.Exists(zipPath))
             {
-                return "DriverBoosterPortable.zip not found in cache. Place it in the 'cache' folder or install from Software tab.";
+                return zipName + " not found in USB cache. Place it in 'cache' folder or install via Software tab.";
             }
 
-            string targetDir = @"C:\Tools\DriverBooster";
             if (!Directory.Exists(targetDir))
             {
                 Directory.CreateDirectory(targetDir);
@@ -249,7 +417,7 @@ namespace TechInstaller
                 return "Extraction error: " + ex.Message;
             }
 
-            // Create desktop shortcut
+            // Desktop shortcut
             try
             {
                 Type shellType = Type.GetTypeFromProgID("WScript.Shell");
@@ -257,7 +425,7 @@ namespace TechInstaller
                 {
                     object shell = Activator.CreateInstance(shellType);
                     string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-                    string shortcutFile = Path.Combine(desktopPath, "IObit Driver Booster.lnk");
+                    string shortcutFile = Path.Combine(desktopPath, appTitle + ".lnk");
                     object shortcut = shellType.InvokeMember("CreateShortcut",
                         System.Reflection.BindingFlags.InvokeMethod, null, shell, new object[] { shortcutFile });
                     if (shortcut != null)
@@ -265,7 +433,7 @@ namespace TechInstaller
                         Type scType = shortcut.GetType();
                         scType.InvokeMember("TargetPath", System.Reflection.BindingFlags.SetProperty, null, shortcut, new object[] { portableExe });
                         scType.InvokeMember("WorkingDirectory", System.Reflection.BindingFlags.SetProperty, null, shortcut, new object[] { targetDir });
-                        scType.InvokeMember("Description", System.Reflection.BindingFlags.SetProperty, null, shortcut, new object[] { "IObit Driver Booster Portable" });
+                        scType.InvokeMember("Description", System.Reflection.BindingFlags.SetProperty, null, shortcut, new object[] { appTitle + " Portable" });
                         scType.InvokeMember("Save", System.Reflection.BindingFlags.InvokeMethod, null, shortcut, null);
                     }
                 }
@@ -275,10 +443,17 @@ namespace TechInstaller
             if (File.Exists(portableExe))
             {
                 Process.Start(portableExe);
-                return "Extracted to " + targetDir + ", created Desktop shortcut, and launched Driver Booster!";
+                return "Extracted to " + targetDir + ", created Desktop shortcut, and launched " + appTitle + "!";
             }
 
-            return "Extracted to " + targetDir + " but DriverBoosterPortable.exe was not found.";
+            string[] anyExe = Directory.GetFiles(targetDir, "*.exe", SearchOption.AllDirectories);
+            if (anyExe.Length > 0)
+            {
+                Process.Start(anyExe[0]);
+                return "Extracted and launched " + Path.GetFileName(anyExe[0]);
+            }
+
+            return "Extracted to " + targetDir + " successfully.";
         }
 
         private static string RunSilentCommand(string fileName, string arguments)
