@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
 using System.Net.NetworkInformation;
 using System.Windows.Forms;
@@ -13,6 +14,7 @@ namespace TechInstaller
         private List<AppItem> _allApps;
         private List<CloudAppItem> _cloudApps;
         private InstallerEngine _engine;
+        private AppItem _selectedApp;
 
         // Navigation Mode Tabs
         private Panel _navPanel;
@@ -45,27 +47,39 @@ namespace TechInstaller
         private Panel _searchPanel;
         private Label _lblSearch;
         private TextBox _txtSearch;
+        private Label _lblSearchHint;
 
         private SplitContainer _splitContainer;
         private DataGridView _gridApps;
 
+        // Right Info Card & Terminal
         private Panel _rightPanel;
         private Panel _detailsPanel;
+        private PictureBox _picDetailsIcon;
         private Label _lblDetailsTitle;
-        private Label _lblDetailsCategory;
-        private Label _lblDetailsSize;
-        private Label _lblDetailsCache;
-        private Label _lblDetailsArgs;
+        private Label _lblDetailsCategoryBadge;
+        private Label _lblDetailsTypeBadge;
+
+        private Label _lblValSize;
+        private Label _lblValStatus;
+        private Label _lblValSource;
+        private Label _lblValSwitch;
         private TextBox _txtDetailsDesc;
+
+        private Button _btnDetailsOpenUrl;
+        private Button _btnDetailsOpenFolder;
 
         private Panel _logHeaderPanel;
         private Label _lblLogTitle;
+        private Label _lblLogIndicator;
         private Button _btnClearLog;
         private RichTextBox _rtbLog;
 
+        // Bottom Installation Bar
         private Panel _bottomPanel;
         private TableLayoutPanel _bottomLayout;
         private Label _lblOverallStatus;
+        private Label _lblTimeEstimate;
         private ProgressBar _pbOverall;
         private Label _lblCurrentStatus;
         private ProgressBar _pbCurrent;
@@ -80,10 +94,13 @@ namespace TechInstaller
         private SplitContainer _cloudSplitContainer;
         private DataGridView _gridCloudApps;
         private Panel _cloudDetailsPanel;
+        private PictureBox _picCloudIcon;
         private Label _lblCloudTitle;
-        private Label _lblCloudCategory;
-        private Label _lblCloudSize;
-        private Label _lblCloudVersion;
+        private Label _lblCloudCategoryBadge;
+        private Label _lblCloudVersionBadge;
+        private Label _lblCloudValCat;
+        private Label _lblCloudValVer;
+        private Label _lblCloudValSize;
         private TextBox _txtCloudDesc;
         private TextBox _txtCloudUrl;
         private Button _btnCloudLaunchDirect;
@@ -92,18 +109,24 @@ namespace TechInstaller
         private FlowLayoutPanel _toolsFlowPanel;
         private RichTextBox _rtbToolsLog;
 
-        // Modern Slate Theme Colors
-        private readonly Color ColBg = Color.FromArgb(15, 23, 42);          // Slate 900
-        private readonly Color ColCard = Color.FromArgb(30, 41, 59);        // Slate 800
-        private readonly Color ColCardAlt = Color.FromArgb(24, 34, 52);     // Slate 850
-        private readonly Color ColHover = Color.FromArgb(51, 65, 85);        // Slate 700
-        private readonly Color ColBorder = Color.FromArgb(51, 65, 85);       // Slate 700
-        private readonly Color ColAccentBlue = Color.FromArgb(56, 189, 248); // Sky 400
-        private readonly Color ColAccentGreen = Color.FromArgb(16, 185, 129); // Emerald 500
-        private readonly Color ColAccentAmber = Color.FromArgb(245, 158, 11); // Amber 500
-        private readonly Color ColAccentRed = Color.FromArgb(239, 68, 68);   // Red 500
-        private readonly Color ColTextPrimary = Color.FromArgb(248, 250, 252);
-        private readonly Color ColTextSecondary = Color.FromArgb(148, 163, 184);
+        // Modern Slate & Neon Blue Theme Colors
+        private readonly Color ColBg = Color.FromArgb(8, 14, 30);            // Deep navy / black #080E1E
+        private readonly Color ColCard = Color.FromArgb(13, 23, 46);          // Dark card surface #0D172E
+        private readonly Color ColCardAlt = Color.FromArgb(19, 31, 58);       // Secondary surface #131F3A
+        private readonly Color ColCardBorder = Color.FromArgb(30, 45, 75);    // Card border #1E2D4B
+        private readonly Color ColBorder = Color.FromArgb(26, 40, 68);        // Subtle border #1A2844
+        private readonly Color ColHover = Color.FromArgb(28, 48, 86);         // Hover color #1C3056
+        private readonly Color ColRowAlt = Color.FromArgb(11, 19, 38);        // Table alternate row #0B1326
+        private readonly Color ColRowSelect = Color.FromArgb(12, 58, 107);     // Active row select #0C3A6B
+        private readonly Color ColAccentBlue = Color.FromArgb(56, 189, 248);   // Sky 400
+        private readonly Color ColAccentCyan = Color.FromArgb(14, 165, 233);   // Sky 500
+        private readonly Color ColAccentGreen = Color.FromArgb(16, 185, 129);  // Emerald 500
+        private readonly Color ColAccentAmber = Color.FromArgb(245, 158, 11);  // Amber 500
+        private readonly Color ColAccentRed = Color.FromArgb(239, 68, 68);     // Red 500
+        private readonly Color ColAccentPurple = Color.FromArgb(168, 85, 247); // Purple 500
+        private readonly Color ColTextPrimary = Color.FromArgb(248, 250, 252); // Off-white
+        private readonly Color ColTextSecondary = Color.FromArgb(148, 163, 184); // Slate 400
+        private readonly Color ColTextMuted = Color.FromArgb(100, 116, 139);     // Slate 500
 
         public MainForm()
         {
@@ -144,52 +167,59 @@ namespace TechInstaller
 
         private void InitializeComponent()
         {
-            this.Text = "TechInstaller - Windows Post-Install & Tech Toolbox";
-            this.Size = new Size(1160, 760);
-            this.MinimumSize = new Size(960, 620);
+            this.Text = "TECH INSTALLER — Post-Install Tech Toolbox";
+            this.Size = new Size(1260, 780);
+            this.MinimumSize = new Size(1060, 660);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.BackColor = ColBg;
             this.ForeColor = ColTextPrimary;
             this.Font = new Font("Segoe UI", 9.5F, FontStyle.Regular, GraphicsUnit.Point);
+            this.KeyPreview = true;
 
             // ==================== TOP HEADER ====================
             _topPanel = new Panel();
             _topPanel.Dock = DockStyle.Top;
             _topPanel.Height = 70;
             _topPanel.BackColor = ColCard;
-            _topPanel.Padding = new Padding(16, 8, 16, 8);
+            _topPanel.Padding = new Padding(18, 10, 18, 8);
+            _topPanel.Paint += delegate(object s, PaintEventArgs pe) {
+                using (Pen p = new Pen(ColBorder, 1))
+                {
+                    pe.Graphics.DrawLine(p, 0, _topPanel.Height - 1, _topPanel.Width, _topPanel.Height - 1);
+                }
+            };
 
             _lblTitle = new Label();
-            _lblTitle.Text = "⚡ TECH INSTALLER - Post-Install & Tech Toolbox";
+            _lblTitle.Text = "⚡ TECH INSTALLER — Post-Install Tech Toolbox";
             _lblTitle.Font = new Font("Segoe UI", 13.5F, FontStyle.Bold);
-            _lblTitle.ForeColor = ColAccentBlue;
+            _lblTitle.ForeColor = ColTextPrimary;
             _lblTitle.AutoSize = true;
-            _lblTitle.Location = new Point(16, 10);
+            _lblTitle.Location = new Point(18, 12);
 
             _lblSubtitle = new Label();
             string osName = Environment.OSVersion.ToString();
             string arch = Environment.Is64BitOperatingSystem ? "64-bit" : "32-bit";
             string rootDrive = Path.GetPathRoot(ConfigManager.GetAppDirectory());
             bool isOnline = NetworkInterface.GetIsNetworkAvailable();
-            _lblSubtitle.Text = string.Format("💻 OS: {0} ({1})  •  📁 Drive: {2}  •  {3} {4}  •  🛡️ Admin Mode Active",
+            _lblSubtitle.Text = string.Format("💻 OS: {0} ({1})  •  💾 Drive: {2}  •  {3} {4}  •  🛡️ Admin Mode Active",
                 osName, arch, rootDrive, isOnline ? "🟢" : "🔴", isOnline ? "Online" : "Offline");
             _lblSubtitle.Font = new Font("Segoe UI", 9.0F);
             _lblSubtitle.ForeColor = ColTextSecondary;
             _lblSubtitle.AutoSize = true;
-            _lblSubtitle.Location = new Point(18, 40);
+            _lblSubtitle.Location = new Point(20, 41);
 
             _topButtonsPanel = new FlowLayoutPanel();
             _topButtonsPanel.Dock = DockStyle.Right;
             _topButtonsPanel.FlowDirection = FlowDirection.RightToLeft;
-            _topButtonsPanel.Width = 600;
+            _topButtonsPanel.Width = 640;
             _topButtonsPanel.Height = 52;
             _topButtonsPanel.BackColor = Color.Transparent;
             _topButtonsPanel.Padding = new Padding(0, 8, 0, 0);
 
-            _btnReload = CreateStyledButton("🔄 Reload", ColHover, 90);
+            _btnReload = CreatePillButton("🔄 Reload", ColCardAlt, ColTextPrimary, 95, 34);
             _btnReload.Click += delegate { LoadAppCatalog(); LoadCloudAppCatalog(); };
 
-            Button btnSyncGitHub = CreateStyledButton("☁️ Sync from GitHub", Color.FromArgb(14, 165, 233), 160);
+            Button btnSyncGitHub = CreatePillButton("☁️ Sync from GitHub", ColAccentCyan, Color.White, 160, 34);
             btnSyncGitHub.Click += delegate {
                 string msg;
                 bool ok = ConfigManager.FetchFromGitHub(out msg);
@@ -198,10 +228,10 @@ namespace TechInstaller
                 MessageBox.Show(msg, ok ? "GitHub Sync Complete" : "GitHub Sync Notice", MessageBoxButtons.OK, ok ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
             };
 
-            _btnDownloadAll = CreateStyledButton("⬇️ Cache All to USB", Color.FromArgb(37, 99, 235), 145);
+            _btnDownloadAll = CreatePillButton("⬇️ Cache All to USB", Color.FromArgb(37, 99, 235), Color.White, 150, 34);
             _btnDownloadAll.Click += delegate { DownloadAllMissingToCache(); };
 
-            _btnOpenCache = CreateStyledButton("📁 Open USB Cache", ColHover, 135);
+            _btnOpenCache = CreatePillButton("📁 Open USB Cache", ColCardAlt, ColTextPrimary, 140, 34);
             _btnOpenCache.Click += delegate { OpenCacheFolder(); };
 
             _topButtonsPanel.Controls.Add(_btnReload);
@@ -216,24 +246,30 @@ namespace TechInstaller
             // ==================== NAVIGATION TAB BAR ====================
             _navPanel = new Panel();
             _navPanel.Dock = DockStyle.Top;
-            _navPanel.Height = 44;
-            _navPanel.BackColor = Color.FromArgb(18, 26, 44);
-            _navPanel.Padding = new Padding(12, 4, 12, 4);
+            _navPanel.Height = 46;
+            _navPanel.BackColor = Color.FromArgb(10, 18, 38);
+            _navPanel.Padding = new Padding(16, 6, 16, 6);
+            _navPanel.Paint += delegate(object s, PaintEventArgs pe) {
+                using (Pen p = new Pen(ColBorder, 1))
+                {
+                    pe.Graphics.DrawLine(p, 0, _navPanel.Height - 1, _navPanel.Width, _navPanel.Height - 1);
+                }
+            };
 
-            _btnNavSoftware = CreateNavButton("📦 Standard Software (USB / Offline)", true);
+            _btnNavSoftware = CreateNavTabButton("⊞ Standard Software (USB)", true);
             _btnNavSoftware.Click += delegate { ShowTab("software"); };
 
-            _btnNavCloud = CreateNavButton("☁️ Google Drive Apps", false);
+            _btnNavCloud = CreateNavTabButton("▲ Google Drive Apps", false);
             _btnNavCloud.Click += delegate { ShowTab("cloud"); };
 
-            _btnNavTools = CreateNavButton("🛠️ System Tools & Tweaks", false);
+            _btnNavTools = CreateNavTabButton("🛠️ System Tools & Tweaks", false);
             _btnNavTools.Click += delegate { ShowTab("tools"); };
 
             _navPanel.Controls.Add(_btnNavTools);
             _navPanel.Controls.Add(_btnNavCloud);
             _navPanel.Controls.Add(_btnNavSoftware);
 
-            // Build Panels
+            // Build Main Panels
             InitializeSoftwarePanel();
             InitializeCloudPanel();
             InitializeToolsPanel();
@@ -245,19 +281,39 @@ namespace TechInstaller
             this.Controls.Add(_topPanel);
         }
 
-        private Button CreateNavButton(string text, bool isActive)
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (keyData == (Keys.Control | Keys.F))
+            {
+                if (_panelSoftware != null && _panelSoftware.Visible && _txtSearch != null)
+                {
+                    _txtSearch.Focus();
+                    _txtSearch.SelectAll();
+                    return true;
+                }
+                if (_panelCloud != null && _panelCloud.Visible && _txtCloudSearch != null)
+                {
+                    _txtCloudSearch.Focus();
+                    _txtCloudSearch.SelectAll();
+                    return true;
+                }
+            }
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+
+        private Button CreateNavTabButton(string text, bool isActive)
         {
             Button btn = new Button();
             btn.Text = text;
             btn.Height = 34;
-            btn.Width = 240;
+            btn.Width = 235;
             btn.Dock = DockStyle.Left;
             btn.FlatStyle = FlatStyle.Flat;
             btn.FlatAppearance.BorderSize = 0;
             btn.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
             btn.Cursor = Cursors.Hand;
-            btn.BackColor = isActive ? ColAccentBlue : Color.Transparent;
-            btn.ForeColor = isActive ? Color.FromArgb(15, 23, 42) : ColTextSecondary;
+            btn.BackColor = isActive ? ColAccentCyan : Color.Transparent;
+            btn.ForeColor = isActive ? Color.White : ColTextSecondary;
             return btn;
         }
 
@@ -267,15 +323,15 @@ namespace TechInstaller
             _panelCloud.Visible = (tab == "cloud");
             _panelTools.Visible = (tab == "tools");
 
-            SetNavButtonActive(_btnNavSoftware, tab == "software");
-            SetNavButtonActive(_btnNavCloud, tab == "cloud");
-            SetNavButtonActive(_btnNavTools, tab == "tools");
+            SetNavTabActive(_btnNavSoftware, tab == "software");
+            SetNavTabActive(_btnNavCloud, tab == "cloud");
+            SetNavTabActive(_btnNavTools, tab == "tools");
         }
 
-        private void SetNavButtonActive(Button btn, bool active)
+        private void SetNavTabActive(Button btn, bool active)
         {
-            btn.BackColor = active ? ColAccentBlue : Color.Transparent;
-            btn.ForeColor = active ? Color.FromArgb(15, 23, 42) : ColTextSecondary;
+            btn.BackColor = active ? ColAccentCyan : Color.Transparent;
+            btn.ForeColor = active ? Color.White : ColTextSecondary;
         }
 
         // =========================================================================
@@ -290,109 +346,152 @@ namespace TechInstaller
             // Preset Toolbar
             _presetPanel = new Panel();
             _presetPanel.Dock = DockStyle.Top;
-            _presetPanel.Height = 46;
+            _presetPanel.Height = 48;
             _presetPanel.BackColor = ColCardAlt;
-            _presetPanel.Padding = new Padding(12, 6, 12, 6);
+            _presetPanel.Padding = new Padding(16, 7, 16, 7);
+            _presetPanel.Paint += delegate(object s, PaintEventArgs pe) {
+                using (Pen p = new Pen(ColBorder, 1))
+                {
+                    pe.Graphics.DrawLine(p, 0, _presetPanel.Height - 1, _presetPanel.Width, _presetPanel.Height - 1);
+                }
+            };
 
             _presetButtonsPanel = new FlowLayoutPanel();
             _presetButtonsPanel.Dock = DockStyle.Fill;
             _presetButtonsPanel.FlowDirection = FlowDirection.LeftToRight;
             _presetButtonsPanel.BackColor = Color.Transparent;
 
-            _btnPresetEssentials = CreateStyledButton("⭐ Essentials", ColHover, 115);
+            _btnPresetEssentials = CreatePillButton("★ Essentials", ColCard, ColAccentAmber, 115, 32);
             _btnPresetEssentials.Click += delegate { ApplyPreset("essential"); };
 
-            _btnPresetRuntimes = CreateStyledButton("⚡ All Runtimes", ColHover, 115);
+            _btnPresetRuntimes = CreatePillButton("⚡ All Runtimes", ColCard, ColAccentPurple, 120, 32);
             _btnPresetRuntimes.Click += delegate { ApplyPreset("runtime"); };
 
-            _btnPresetGaming = CreateStyledButton("🎮 Gaming PC", ColHover, 115);
+            _btnPresetGaming = CreatePillButton("🎮 Gaming PC", ColCard, ColAccentBlue, 115, 32);
             _btnPresetGaming.Click += delegate { ApplyPreset("gaming"); };
 
-            _btnPresetOffice = CreateStyledButton("💼 Office Setup", ColHover, 115);
+            _btnPresetOffice = CreatePillButton("💼 Office Setup", ColCard, ColAccentGreen, 115, 32);
             _btnPresetOffice.Click += delegate { ApplyPreset("office"); };
 
-            _btnSelectAll = CreateStyledButton("✓ Select All", Color.FromArgb(30, 58, 138), 95);
+            Label lblDivider = new Label();
+            lblDivider.Text = "|";
+            lblDivider.ForeColor = ColTextMuted;
+            lblDivider.AutoSize = true;
+            lblDivider.Margin = new Padding(6, 6, 6, 0);
+            lblDivider.Font = new Font("Segoe UI", 11.0F);
+
+            _btnSelectAll = CreatePillButton("☑ Select All", Color.FromArgb(24, 42, 77), ColAccentBlue, 100, 32);
             _btnSelectAll.Click += delegate { SetAllSelection(true); };
 
-            _btnDeselectAll = CreateStyledButton("✕ Clear", Color.FromArgb(71, 85, 105), 75);
+            _btnDeselectAll = CreatePillButton("☐ Clear", ColCard, ColTextSecondary, 80, 32);
             _btnDeselectAll.Click += delegate { SetAllSelection(false); };
 
             _presetButtonsPanel.Controls.Add(_btnPresetEssentials);
             _presetButtonsPanel.Controls.Add(_btnPresetRuntimes);
             _presetButtonsPanel.Controls.Add(_btnPresetGaming);
             _presetButtonsPanel.Controls.Add(_btnPresetOffice);
+            _presetButtonsPanel.Controls.Add(lblDivider);
             _presetButtonsPanel.Controls.Add(_btnSelectAll);
             _presetButtonsPanel.Controls.Add(_btnDeselectAll);
 
+            // Search Panel with modern badge hint
             _searchPanel = new Panel();
             _searchPanel.Dock = DockStyle.Right;
-            _searchPanel.Width = 240;
+            _searchPanel.Width = 270;
             _searchPanel.BackColor = Color.Transparent;
 
             _lblSearch = new Label();
             _lblSearch.Text = "🔍";
             _lblSearch.AutoSize = true;
-            _lblSearch.Location = new Point(6, 10);
+            _lblSearch.Location = new Point(4, 9);
             _lblSearch.ForeColor = ColTextSecondary;
 
             _txtSearch = new TextBox();
-            _txtSearch.Width = 195;
-            _txtSearch.Location = new Point(32, 6);
+            _txtSearch.Width = 185;
+            _txtSearch.Location = new Point(28, 6);
             _txtSearch.BackColor = ColBg;
             _txtSearch.ForeColor = ColTextPrimary;
             _txtSearch.BorderStyle = BorderStyle.FixedSingle;
             _txtSearch.Font = new Font("Segoe UI", 9.5F);
             _txtSearch.TextChanged += delegate { FilterApps(_txtSearch.Text); };
 
+            _lblSearchHint = new Label();
+            _lblSearchHint.Text = "Ctrl+F";
+            _lblSearchHint.Font = new Font("Segoe UI", 7.5F, FontStyle.Bold);
+            _lblSearchHint.ForeColor = ColTextMuted;
+            _lblSearchHint.BackColor = ColCard;
+            _lblSearchHint.BorderStyle = BorderStyle.FixedSingle;
+            _lblSearchHint.AutoSize = false;
+            _lblSearchHint.Size = new Size(46, 22);
+            _lblSearchHint.TextAlign = ContentAlignment.MiddleCenter;
+            _lblSearchHint.Location = new Point(218, 6);
+            _lblSearchHint.Cursor = Cursors.Hand;
+            _lblSearchHint.Click += delegate { _txtSearch.Focus(); _txtSearch.SelectAll(); };
+
             _searchPanel.Controls.Add(_lblSearch);
             _searchPanel.Controls.Add(_txtSearch);
+            _searchPanel.Controls.Add(_lblSearchHint);
 
             _presetPanel.Controls.Add(_presetButtonsPanel);
             _presetPanel.Controls.Add(_searchPanel);
 
-            // Bottom Action & Progress in Responsive TableLayoutPanel
+            // Bottom Action & Progress Bar
             _bottomPanel = new Panel();
             _bottomPanel.Dock = DockStyle.Bottom;
-            _bottomPanel.Height = 96;
+            _bottomPanel.Height = 94;
             _bottomPanel.BackColor = ColCard;
-            _bottomPanel.Padding = new Padding(16, 8, 16, 8);
+            _bottomPanel.Padding = new Padding(18, 8, 18, 8);
+            _bottomPanel.Paint += delegate(object s, PaintEventArgs pe) {
+                using (Pen p = new Pen(ColBorder, 1))
+                {
+                    pe.Graphics.DrawLine(p, 0, 0, _bottomPanel.Width, 0);
+                }
+            };
 
             _bottomLayout = new TableLayoutPanel();
             _bottomLayout.Dock = DockStyle.Fill;
             _bottomLayout.ColumnCount = 2;
             _bottomLayout.RowCount = 1;
-            _bottomLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 72F));
-            _bottomLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 28F));
+            _bottomLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 74F));
+            _bottomLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 26F));
 
             Panel bottomProgressContainer = new Panel();
             bottomProgressContainer.Dock = DockStyle.Fill;
             bottomProgressContainer.BackColor = Color.Transparent;
 
             _lblOverallStatus = new Label();
-            _lblOverallStatus.Text = "Ready. Select software items and click 'Start Installation'.";
+            _lblOverallStatus.Text = "Ready. Select software packages and click 'Start Installation'.";
             _lblOverallStatus.AutoSize = true;
             _lblOverallStatus.ForeColor = ColTextPrimary;
             _lblOverallStatus.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            _lblOverallStatus.Location = new Point(0, 4);
+            _lblOverallStatus.Location = new Point(0, 3);
+
+            _lblTimeEstimate = new Label();
+            _lblTimeEstimate.Text = "⏱️ Estimated time: ~2-5 min  •  Automated silent installation";
+            _lblTimeEstimate.AutoSize = true;
+            _lblTimeEstimate.ForeColor = ColTextSecondary;
+            _lblTimeEstimate.Font = new Font("Segoe UI", 8.5F);
+            _lblTimeEstimate.Location = new Point(0, 22);
 
             _pbOverall = new ProgressBar();
-            _pbOverall.Height = 15;
-            _pbOverall.Location = new Point(0, 26);
+            _pbOverall.Height = 14;
+            _pbOverall.Location = new Point(0, 42);
             _pbOverall.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
 
             _lblCurrentStatus = new Label();
             _lblCurrentStatus.Text = "Idle";
             _lblCurrentStatus.AutoSize = true;
-            _lblCurrentStatus.ForeColor = ColTextSecondary;
-            _lblCurrentStatus.Font = new Font("Segoe UI", 8.5F);
-            _lblCurrentStatus.Location = new Point(0, 46);
+            _lblCurrentStatus.ForeColor = ColTextMuted;
+            _lblCurrentStatus.Font = new Font("Segoe UI", 8.0F);
+            _lblCurrentStatus.Location = new Point(0, 60);
 
             _pbCurrent = new ProgressBar();
-            _pbCurrent.Height = 10;
-            _pbCurrent.Location = new Point(0, 64);
+            _pbCurrent.Height = 8;
+            _pbCurrent.Location = new Point(0, 76);
             _pbCurrent.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
 
             bottomProgressContainer.Controls.Add(_lblOverallStatus);
+            bottomProgressContainer.Controls.Add(_lblTimeEstimate);
             bottomProgressContainer.Controls.Add(_pbOverall);
             bottomProgressContainer.Controls.Add(_lblCurrentStatus);
             bottomProgressContainer.Controls.Add(_pbCurrent);
@@ -400,10 +499,10 @@ namespace TechInstaller
             Panel bottomButtonContainer = new Panel();
             bottomButtonContainer.Dock = DockStyle.Fill;
             bottomButtonContainer.BackColor = Color.Transparent;
-            bottomButtonContainer.Padding = new Padding(10, 6, 0, 6);
+            bottomButtonContainer.Padding = new Padding(12, 12, 0, 12);
 
             _btnAction = new Button();
-            _btnAction.Text = "🚀 START INSTALLATION";
+            _btnAction.Text = "▶ Start Installation  ∨";
             _btnAction.Dock = DockStyle.Fill;
             _btnAction.BackColor = ColAccentGreen;
             _btnAction.ForeColor = Color.White;
@@ -419,20 +518,20 @@ namespace TechInstaller
             _bottomLayout.Controls.Add(bottomButtonContainer, 1, 0);
             _bottomPanel.Controls.Add(_bottomLayout);
 
-            // Split Container
+            // Split Container (Grid on Left, Details & Terminal on Right)
             _splitContainer = new SplitContainer();
             _splitContainer.Dock = DockStyle.Fill;
             _splitContainer.BackColor = ColBorder;
-            _splitContainer.SplitterWidth = 4;
-            _splitContainer.SplitterDistance = 640;
+            _splitContainer.SplitterWidth = 3;
+            _splitContainer.SplitterDistance = 680;
 
-            // Grid Left
+            // Software Grid Left
             _gridApps = new DataGridView();
             _gridApps.Dock = DockStyle.Fill;
             _gridApps.BackgroundColor = ColBg;
             _gridApps.BorderStyle = BorderStyle.None;
             _gridApps.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
-            _gridApps.GridColor = Color.FromArgb(30, 41, 59);
+            _gridApps.GridColor = Color.FromArgb(20, 32, 54);
             _gridApps.EnableHeadersVisualStyles = false;
             _gridApps.RowHeadersVisible = false;
             _gridApps.AllowUserToAddRows = false;
@@ -440,31 +539,42 @@ namespace TechInstaller
             _gridApps.AllowUserToResizeRows = false;
             _gridApps.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             _gridApps.MultiSelect = false;
-            _gridApps.RowTemplate.Height = 32;
+            _gridApps.RowTemplate.Height = 38;
 
             _gridApps.ColumnHeadersHeight = 36;
             _gridApps.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             _gridApps.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
-            _gridApps.ColumnHeadersDefaultCellStyle.BackColor = ColCard;
-            _gridApps.ColumnHeadersDefaultCellStyle.ForeColor = ColTextPrimary;
-            _gridApps.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            _gridApps.ColumnHeadersDefaultCellStyle.Padding = new Padding(4);
+            _gridApps.ColumnHeadersDefaultCellStyle.BackColor = ColCardAlt;
+            _gridApps.ColumnHeadersDefaultCellStyle.ForeColor = ColTextSecondary;
+            _gridApps.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.0F, FontStyle.Bold);
+            _gridApps.ColumnHeadersDefaultCellStyle.Padding = new Padding(6, 4, 4, 4);
 
             _gridApps.DefaultCellStyle.BackColor = ColBg;
             _gridApps.DefaultCellStyle.ForeColor = ColTextPrimary;
-            _gridApps.DefaultCellStyle.SelectionBackColor = Color.FromArgb(30, 58, 138);
+            _gridApps.DefaultCellStyle.SelectionBackColor = ColRowSelect;
             _gridApps.DefaultCellStyle.SelectionForeColor = Color.White;
-            _gridApps.DefaultCellStyle.Font = new Font("Segoe UI", 9.0F);
+            _gridApps.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F);
 
-            _gridApps.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(20, 30, 48);
+            _gridApps.AlternatingRowsDefaultCellStyle.BackColor = ColRowAlt;
             _gridApps.AlternatingRowsDefaultCellStyle.ForeColor = ColTextPrimary;
 
+            EnableDoubleBuffering(_gridApps);
+
+            // Columns
             DataGridViewCheckBoxColumn colCheck = new DataGridViewCheckBoxColumn();
-            colCheck.Width = 36;
+            colCheck.Width = 34;
             colCheck.HeaderText = "";
             colCheck.Name = "ColCheck";
             colCheck.Resizable = DataGridViewTriState.False;
             _gridApps.Columns.Add(colCheck);
+
+            DataGridViewImageColumn colIcon = new DataGridViewImageColumn();
+            colIcon.Width = 36;
+            colIcon.HeaderText = "";
+            colIcon.Name = "ColIcon";
+            colIcon.ImageLayout = DataGridViewImageCellLayout.Zoom;
+            colIcon.Resizable = DataGridViewTriState.False;
+            _gridApps.Columns.Add(colIcon);
 
             DataGridViewTextBoxColumn colName = new DataGridViewTextBoxColumn();
             colName.HeaderText = "Software Name";
@@ -477,8 +587,9 @@ namespace TechInstaller
             DataGridViewTextBoxColumn colCat = new DataGridViewTextBoxColumn();
             colCat.HeaderText = "Category";
             colCat.Name = "ColCategory";
-            colCat.Width = 105;
+            colCat.Width = 115;
             colCat.ReadOnly = true;
+            colCat.DefaultCellStyle.ForeColor = ColTextSecondary;
             _gridApps.Columns.Add(colCat);
 
             DataGridViewTextBoxColumn colSize = new DataGridViewTextBoxColumn();
@@ -486,21 +597,31 @@ namespace TechInstaller
             colSize.Name = "ColSize";
             colSize.Width = 75;
             colSize.ReadOnly = true;
+            colSize.DefaultCellStyle.ForeColor = ColTextSecondary;
             _gridApps.Columns.Add(colSize);
 
             DataGridViewTextBoxColumn colSource = new DataGridViewTextBoxColumn();
             colSource.HeaderText = "Source";
             colSource.Name = "ColSource";
-            colSource.Width = 125;
+            colSource.Width = 115;
             colSource.ReadOnly = true;
             _gridApps.Columns.Add(colSource);
 
             DataGridViewTextBoxColumn colStatus = new DataGridViewTextBoxColumn();
             colStatus.HeaderText = "Status";
             colStatus.Name = "ColStatus";
-            colStatus.Width = 100;
+            colStatus.Width = 130;
             colStatus.ReadOnly = true;
             _gridApps.Columns.Add(colStatus);
+
+            DataGridViewTextBoxColumn colArrow = new DataGridViewTextBoxColumn();
+            colArrow.HeaderText = "";
+            colArrow.Name = "ColArrow";
+            colArrow.Width = 26;
+            colArrow.ReadOnly = true;
+            colArrow.DefaultCellStyle.ForeColor = ColTextMuted;
+            colArrow.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            _gridApps.Columns.Add(colArrow);
 
             _gridApps.CellClick += OnGridCellClick;
             _gridApps.CellContentClick += OnGridCellContentClick;
@@ -510,93 +631,145 @@ namespace TechInstaller
 
             _splitContainer.Panel1.Controls.Add(_gridApps);
 
-            // Right Panel (Details & Terminal)
+            // Right Panel (Details Card & Live Terminal)
             _rightPanel = new Panel();
             _rightPanel.Dock = DockStyle.Fill;
             _rightPanel.BackColor = ColCard;
 
+            // Details Card Top
             _detailsPanel = new Panel();
             _detailsPanel.Dock = DockStyle.Top;
-            _detailsPanel.Height = 175;
+            _detailsPanel.Height = 250;
             _detailsPanel.BackColor = ColCard;
-            _detailsPanel.Padding = new Padding(14);
+            _detailsPanel.Padding = new Padding(16, 14, 16, 10);
+            _detailsPanel.Paint += delegate(object s, PaintEventArgs pe) {
+                using (Pen p = new Pen(ColBorder, 1))
+                {
+                    pe.Graphics.DrawLine(p, 0, _detailsPanel.Height - 1, _detailsPanel.Width, _detailsPanel.Height - 1);
+                }
+            };
+
+            _picDetailsIcon = new PictureBox();
+            _picDetailsIcon.Size = new Size(48, 48);
+            _picDetailsIcon.Location = new Point(16, 14);
+            _picDetailsIcon.SizeMode = PictureBoxSizeMode.Zoom;
+            _picDetailsIcon.BackColor = Color.Transparent;
 
             _lblDetailsTitle = new Label();
             _lblDetailsTitle.Text = "Software Information";
-            _lblDetailsTitle.Font = new Font("Segoe UI", 11.5F, FontStyle.Bold);
-            _lblDetailsTitle.ForeColor = ColAccentBlue;
-            _lblDetailsTitle.AutoSize = true;
-            _lblDetailsTitle.Location = new Point(14, 10);
+            _lblDetailsTitle.Font = new Font("Segoe UI", 12.0F, FontStyle.Bold);
+            _lblDetailsTitle.ForeColor = ColTextPrimary;
+            _lblDetailsTitle.Location = new Point(72, 14);
+            _lblDetailsTitle.Size = new Size(340, 24);
+            _lblDetailsTitle.AutoEllipsis = true;
 
-            _lblDetailsCategory = new Label();
-            _lblDetailsCategory.Text = "Category: -";
-            _lblDetailsCategory.ForeColor = ColTextSecondary;
-            _lblDetailsCategory.AutoSize = true;
-            _lblDetailsCategory.Location = new Point(14, 34);
+            _lblDetailsCategoryBadge = CreateBadgeLabel("Category", ColAccentCyan);
+            _lblDetailsCategoryBadge.Location = new Point(72, 40);
 
-            _lblDetailsSize = new Label();
-            _lblDetailsSize.Text = "Size: -";
-            _lblDetailsSize.ForeColor = ColTextSecondary;
-            _lblDetailsSize.AutoSize = true;
-            _lblDetailsSize.Location = new Point(150, 34);
+            _lblDetailsTypeBadge = CreateBadgeLabel("Type", ColAccentGreen);
+            _lblDetailsTypeBadge.Location = new Point(190, 40);
 
-            _lblDetailsCache = new Label();
-            _lblDetailsCache.Text = "Status: -";
-            _lblDetailsCache.ForeColor = ColAccentGreen;
-            _lblDetailsCache.AutoSize = true;
-            _lblDetailsCache.Location = new Point(14, 54);
+            // Info Key-Value Table
+            TableLayoutPanel infoTable = new TableLayoutPanel();
+            infoTable.Location = new Point(16, 72);
+            infoTable.Size = new Size(420, 48);
+            infoTable.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            infoTable.ColumnCount = 4;
+            infoTable.RowCount = 2;
+            infoTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 18F));
+            infoTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 32F));
+            infoTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 18F));
+            infoTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 32F));
 
-            _lblDetailsArgs = new Label();
-            _lblDetailsArgs.Text = "Silent Switch: -";
-            _lblDetailsArgs.ForeColor = Color.FromArgb(125, 211, 252);
-            _lblDetailsArgs.Font = new Font("Consolas", 8.5F);
-            _lblDetailsArgs.AutoSize = true;
-            _lblDetailsArgs.Location = new Point(14, 74);
+            infoTable.Controls.Add(CreateMutedLabel("Size:"), 0, 0);
+            _lblValSize = CreateBoldValueLabel("-");
+            infoTable.Controls.Add(_lblValSize, 1, 0);
+
+            infoTable.Controls.Add(CreateMutedLabel("Status:"), 2, 0);
+            _lblValStatus = CreateBoldValueLabel("-");
+            infoTable.Controls.Add(_lblValStatus, 3, 0);
+
+            infoTable.Controls.Add(CreateMutedLabel("Source:"), 0, 1);
+            _lblValSource = CreateBoldValueLabel("-");
+            infoTable.Controls.Add(_lblValSource, 1, 1);
+
+            infoTable.Controls.Add(CreateMutedLabel("Switch:"), 2, 1);
+            _lblValSwitch = CreateBoldValueLabel("-");
+            _lblValSwitch.Font = new Font("Consolas", 8.5F);
+            infoTable.Controls.Add(_lblValSwitch, 3, 1);
 
             _txtDetailsDesc = new TextBox();
-            _txtDetailsDesc.Location = new Point(14, 96);
-            _txtDetailsDesc.Width = 380;
-            _txtDetailsDesc.Height = 65;
+            _txtDetailsDesc.Location = new Point(16, 126);
+            _txtDetailsDesc.Width = 420;
+            _txtDetailsDesc.Height = 72;
             _txtDetailsDesc.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             _txtDetailsDesc.Multiline = true;
             _txtDetailsDesc.ReadOnly = true;
             _txtDetailsDesc.BackColor = ColBg;
             _txtDetailsDesc.ForeColor = ColTextPrimary;
-            _txtDetailsDesc.BorderStyle = BorderStyle.None;
+            _txtDetailsDesc.BorderStyle = BorderStyle.FixedSingle;
             _txtDetailsDesc.Font = new Font("Segoe UI", 9.0F);
 
-            _detailsPanel.Controls.Add(_lblDetailsTitle);
-            _detailsPanel.Controls.Add(_lblDetailsCategory);
-            _detailsPanel.Controls.Add(_lblDetailsSize);
-            _detailsPanel.Controls.Add(_lblDetailsCache);
-            _detailsPanel.Controls.Add(_lblDetailsArgs);
-            _detailsPanel.Controls.Add(_txtDetailsDesc);
+            // Quick Actions Links
+            FlowLayoutPanel detailsActions = new FlowLayoutPanel();
+            detailsActions.Location = new Point(16, 206);
+            detailsActions.Size = new Size(420, 36);
+            detailsActions.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            detailsActions.FlowDirection = FlowDirection.LeftToRight;
 
+            _btnDetailsOpenUrl = CreatePillButton("🌐 Homepage / Info", ColCardAlt, ColAccentBlue, 155, 30);
+            _btnDetailsOpenUrl.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            _btnDetailsOpenUrl.Click += delegate { OpenAppHomepage(_selectedApp); };
+
+            _btnDetailsOpenFolder = CreatePillButton("📁 Open USB Location", ColCardAlt, ColAccentGreen, 160, 30);
+            _btnDetailsOpenFolder.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            _btnDetailsOpenFolder.Click += delegate { OpenContainingFolder(_selectedApp); };
+
+            detailsActions.Controls.Add(_btnDetailsOpenUrl);
+            detailsActions.Controls.Add(_btnDetailsOpenFolder);
+
+            _detailsPanel.Controls.Add(_picDetailsIcon);
+            _detailsPanel.Controls.Add(_lblDetailsTitle);
+            _detailsPanel.Controls.Add(_lblDetailsCategoryBadge);
+            _detailsPanel.Controls.Add(_lblDetailsTypeBadge);
+            _detailsPanel.Controls.Add(infoTable);
+            _detailsPanel.Controls.Add(_txtDetailsDesc);
+            _detailsPanel.Controls.Add(detailsActions);
+
+            // Live Terminal Header
             _logHeaderPanel = new Panel();
             _logHeaderPanel.Dock = DockStyle.Top;
-            _logHeaderPanel.Height = 30;
+            _logHeaderPanel.Height = 34;
             _logHeaderPanel.BackColor = ColCardAlt;
-            _logHeaderPanel.Padding = new Padding(10, 4, 10, 4);
+            _logHeaderPanel.Padding = new Padding(12, 6, 12, 6);
+
+            _lblLogIndicator = new Label();
+            _lblLogIndicator.Text = "●";
+            _lblLogIndicator.ForeColor = ColAccentGreen;
+            _lblLogIndicator.Location = new Point(12, 8);
+            _lblLogIndicator.AutoSize = true;
+            _lblLogIndicator.Font = new Font("Segoe UI", 10.0F, FontStyle.Bold);
 
             _lblLogTitle = new Label();
-            _lblLogTitle.Text = "🖥️ LIVE INSTALLATION LOG";
+            _lblLogTitle.Text = "LIVE INSTALLATION CONSOLE";
             _lblLogTitle.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
             _lblLogTitle.ForeColor = ColTextSecondary;
             _lblLogTitle.AutoSize = true;
-            _lblLogTitle.Location = new Point(10, 7);
+            _lblLogTitle.Location = new Point(28, 9);
 
-            _btnClearLog = CreateStyledButton("Clear", ColHover, 60);
-            _btnClearLog.Height = 22;
+            _btnClearLog = CreatePillButton("🧹 Clear", ColCard, ColTextSecondary, 65, 24);
             _btnClearLog.Font = new Font("Segoe UI", 8.0F);
             _btnClearLog.Dock = DockStyle.Right;
             _btnClearLog.Click += delegate { _rtbLog.Clear(); };
 
+            _logHeaderPanel.Controls.Add(_lblLogIndicator);
             _logHeaderPanel.Controls.Add(_lblLogTitle);
             _logHeaderPanel.Controls.Add(_btnClearLog);
 
+            // Terminal RichTextBox
             _rtbLog = new RichTextBox();
             _rtbLog.Dock = DockStyle.Fill;
-            _rtbLog.BackColor = Color.FromArgb(10, 15, 29);
+            _rtbLog.BackColor = Color.FromArgb(6, 10, 20);
             _rtbLog.ForeColor = Color.FromArgb(226, 232, 240);
             _rtbLog.Font = new Font("Consolas", 9.0F, FontStyle.Regular, GraphicsUnit.Point);
             _rtbLog.BorderStyle = BorderStyle.None;
@@ -613,6 +786,39 @@ namespace TechInstaller
             _panelSoftware.Controls.Add(_bottomPanel);
         }
 
+        private Label CreateBadgeLabel(string text, Color foreColor)
+        {
+            Label lbl = new Label();
+            lbl.Text = text;
+            lbl.Font = new Font("Segoe UI", 8.0F, FontStyle.Bold);
+            lbl.ForeColor = foreColor;
+            lbl.BackColor = Color.FromArgb(24, 38, 66);
+            lbl.BorderStyle = BorderStyle.FixedSingle;
+            lbl.AutoSize = true;
+            lbl.Padding = new Padding(3, 1, 3, 1);
+            return lbl;
+        }
+
+        private Label CreateMutedLabel(string text)
+        {
+            Label lbl = new Label();
+            lbl.Text = text;
+            lbl.ForeColor = ColTextMuted;
+            lbl.Font = new Font("Segoe UI", 8.5F);
+            lbl.AutoSize = true;
+            return lbl;
+        }
+
+        private Label CreateBoldValueLabel(string text)
+        {
+            Label lbl = new Label();
+            lbl.Text = text;
+            lbl.ForeColor = ColTextPrimary;
+            lbl.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            lbl.AutoSize = true;
+            return lbl;
+        }
+
         // =========================================================================
         // 2. GOOGLE DRIVE CLOUD APPS PANEL
         // =========================================================================
@@ -627,16 +833,66 @@ namespace TechInstaller
             _cloudTopBar.Dock = DockStyle.Top;
             _cloudTopBar.Height = 48;
             _cloudTopBar.BackColor = ColCardAlt;
-            _cloudTopBar.Padding = new Padding(12, 6, 12, 6);
+            _cloudTopBar.Padding = new Padding(16, 7, 16, 7);
+            _cloudTopBar.Paint += delegate(object s, PaintEventArgs pe) {
+                using (Pen p = new Pen(ColBorder, 1))
+                {
+                    pe.Graphics.DrawLine(p, 0, _cloudTopBar.Height - 1, _cloudTopBar.Width, _cloudTopBar.Height - 1);
+                }
+            };
 
-            _btnCloudOpen = CreateStyledButton("🌐 Open in Browser", ColAccentGreen, 160);
+            _btnCloudOpen = CreatePillButton("🌐 Open in Browser", ColAccentGreen, Color.White, 155, 32);
             _btnCloudOpen.Click += delegate { LaunchSelectedCloudApp(); };
 
-            _btnCloudEditConfig = CreateStyledButton("📝 Edit Links (Notepad)", ColHover, 180);
+            _btnCloudEditConfig = CreatePillButton("📝 Edit Links", ColCard, ColTextPrimary, 120, 32);
             _btnCloudEditConfig.Click += delegate { ConfigManager.OpenCloudConfigInEditor(); };
 
-            _btnCloudReload = CreateStyledButton("🔄 Refresh List", ColHover, 110);
+            _btnCloudReload = CreatePillButton("🔄 Refresh", ColCard, ColTextPrimary, 95, 32);
             _btnCloudReload.Click += delegate { LoadCloudAppCatalog(); };
+
+            Button btnCloudAdd = CreatePillButton("➕ Add App", Color.FromArgb(16, 185, 129), Color.White, 110, 32);
+            btnCloudAdd.Click += delegate {
+                using (AddCloudAppForm dlg = new AddCloudAppForm())
+                {
+                    if (dlg.ShowDialog(this) == DialogResult.OK && dlg.CreatedItem != null)
+                    {
+                        _cloudApps.Add(dlg.CreatedItem);
+                        ConfigManager.SaveCloudApps(_cloudApps);
+                        PopulateCloudGrid(_cloudApps);
+                        MessageBox.Show("Successfully added '" + dlg.CreatedItem.Name + "' to Google Drive Apps!", "App Added", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+            };
+
+            Button btnCloudDelete = CreatePillButton("🗑️ Delete", Color.FromArgb(185, 28, 28), Color.White, 95, 32);
+            btnCloudDelete.Click += delegate {
+                if (_gridCloudApps.SelectedRows.Count == 0) return;
+                CloudAppItem sel = _gridCloudApps.SelectedRows[0].Tag as CloudAppItem;
+                if (sel == null) return;
+                DialogResult dr = MessageBox.Show("Are you sure you want to remove '" + sel.Name + "' from Google Drive Apps?", "Confirm Removal", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (dr == DialogResult.Yes)
+                {
+                    _cloudApps.Remove(sel);
+                    ConfigManager.SaveCloudApps(_cloudApps);
+                    PopulateCloudGrid(_cloudApps);
+                }
+            };
+
+            Button btnCloudPush = CreatePillButton("🚀 Push to GitHub", Color.FromArgb(79, 70, 229), Color.White, 145, 32);
+            btnCloudPush.Click += delegate {
+                string msg;
+                ConfigManager.PushToGitHub(out msg);
+            };
+
+            FlowLayoutPanel leftFlow = new FlowLayoutPanel();
+            leftFlow.Dock = DockStyle.Fill;
+            leftFlow.BackColor = Color.Transparent;
+            leftFlow.Controls.Add(_btnCloudOpen);
+            leftFlow.Controls.Add(btnCloudAdd);
+            leftFlow.Controls.Add(btnCloudDelete);
+            leftFlow.Controls.Add(btnCloudPush);
+            leftFlow.Controls.Add(_btnCloudEditConfig);
+            leftFlow.Controls.Add(_btnCloudReload);
 
             Panel searchWrap = new Panel();
             searchWrap.Dock = DockStyle.Right;
@@ -660,50 +916,6 @@ namespace TechInstaller
             searchWrap.Controls.Add(lblCSearch);
             searchWrap.Controls.Add(_txtCloudSearch);
 
-            Button btnCloudAdd = CreateStyledButton("➕ Add App", Color.FromArgb(16, 185, 129), 115);
-            btnCloudAdd.Click += delegate {
-                using (AddCloudAppForm dlg = new AddCloudAppForm())
-                {
-                    if (dlg.ShowDialog(this) == DialogResult.OK && dlg.CreatedItem != null)
-                    {
-                        _cloudApps.Add(dlg.CreatedItem);
-                        ConfigManager.SaveCloudApps(_cloudApps);
-                        PopulateCloudGrid(_cloudApps);
-                        MessageBox.Show("Successfully added '" + dlg.CreatedItem.Name + "' to Google Drive Apps!", "App Added", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                }
-            };
-
-            Button btnCloudDelete = CreateStyledButton("🗑️ Delete", Color.FromArgb(185, 28, 28), 95);
-            btnCloudDelete.Click += delegate {
-                if (_gridCloudApps.SelectedRows.Count == 0) return;
-                CloudAppItem sel = _gridCloudApps.SelectedRows[0].Tag as CloudAppItem;
-                if (sel == null) return;
-                DialogResult dr = MessageBox.Show("Are you sure you want to remove '" + sel.Name + "' from Google Drive Apps?", "Confirm Removal", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (dr == DialogResult.Yes)
-                {
-                    _cloudApps.Remove(sel);
-                    ConfigManager.SaveCloudApps(_cloudApps);
-                    PopulateCloudGrid(_cloudApps);
-                }
-            };
-
-            Button btnCloudPush = CreateStyledButton("🚀 Push to GitHub", Color.FromArgb(79, 70, 229), 145);
-            btnCloudPush.Click += delegate {
-                string msg;
-                ConfigManager.PushToGitHub(out msg);
-            };
-
-            FlowLayoutPanel leftFlow = new FlowLayoutPanel();
-            leftFlow.Dock = DockStyle.Fill;
-            leftFlow.BackColor = Color.Transparent;
-            leftFlow.Controls.Add(_btnCloudOpen);
-            leftFlow.Controls.Add(btnCloudAdd);
-            leftFlow.Controls.Add(btnCloudDelete);
-            leftFlow.Controls.Add(btnCloudPush);
-            leftFlow.Controls.Add(_btnCloudEditConfig);
-            leftFlow.Controls.Add(_btnCloudReload);
-
             _cloudTopBar.Controls.Add(leftFlow);
             _cloudTopBar.Controls.Add(searchWrap);
 
@@ -711,8 +923,8 @@ namespace TechInstaller
             _cloudSplitContainer = new SplitContainer();
             _cloudSplitContainer.Dock = DockStyle.Fill;
             _cloudSplitContainer.BackColor = ColBorder;
-            _cloudSplitContainer.SplitterWidth = 4;
-            _cloudSplitContainer.SplitterDistance = 640;
+            _cloudSplitContainer.SplitterWidth = 3;
+            _cloudSplitContainer.SplitterDistance = 680;
 
             // Grid Left
             _gridCloudApps = new DataGridView();
@@ -720,7 +932,7 @@ namespace TechInstaller
             _gridCloudApps.BackgroundColor = ColBg;
             _gridCloudApps.BorderStyle = BorderStyle.None;
             _gridCloudApps.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
-            _gridCloudApps.GridColor = Color.FromArgb(30, 41, 59);
+            _gridCloudApps.GridColor = Color.FromArgb(20, 32, 54);
             _gridCloudApps.EnableHeadersVisualStyles = false;
             _gridCloudApps.RowHeadersVisible = false;
             _gridCloudApps.AllowUserToAddRows = false;
@@ -728,24 +940,34 @@ namespace TechInstaller
             _gridCloudApps.AllowUserToResizeRows = false;
             _gridCloudApps.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             _gridCloudApps.MultiSelect = false;
-            _gridCloudApps.RowTemplate.Height = 34;
+            _gridCloudApps.RowTemplate.Height = 38;
 
             _gridCloudApps.ColumnHeadersHeight = 36;
             _gridCloudApps.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             _gridCloudApps.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
-            _gridCloudApps.ColumnHeadersDefaultCellStyle.BackColor = ColCard;
-            _gridCloudApps.ColumnHeadersDefaultCellStyle.ForeColor = ColTextPrimary;
-            _gridCloudApps.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            _gridCloudApps.ColumnHeadersDefaultCellStyle.Padding = new Padding(4);
+            _gridCloudApps.ColumnHeadersDefaultCellStyle.BackColor = ColCardAlt;
+            _gridCloudApps.ColumnHeadersDefaultCellStyle.ForeColor = ColTextSecondary;
+            _gridCloudApps.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.0F, FontStyle.Bold);
+            _gridCloudApps.ColumnHeadersDefaultCellStyle.Padding = new Padding(6, 4, 4, 4);
 
             _gridCloudApps.DefaultCellStyle.BackColor = ColBg;
             _gridCloudApps.DefaultCellStyle.ForeColor = ColTextPrimary;
-            _gridCloudApps.DefaultCellStyle.SelectionBackColor = Color.FromArgb(30, 58, 138);
+            _gridCloudApps.DefaultCellStyle.SelectionBackColor = ColRowSelect;
             _gridCloudApps.DefaultCellStyle.SelectionForeColor = Color.White;
-            _gridCloudApps.DefaultCellStyle.Font = new Font("Segoe UI", 9.0F);
+            _gridCloudApps.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F);
 
-            _gridCloudApps.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(20, 30, 48);
+            _gridCloudApps.AlternatingRowsDefaultCellStyle.BackColor = ColRowAlt;
             _gridCloudApps.AlternatingRowsDefaultCellStyle.ForeColor = ColTextPrimary;
+
+            EnableDoubleBuffering(_gridCloudApps);
+
+            DataGridViewImageColumn cIcon = new DataGridViewImageColumn();
+            cIcon.Width = 36;
+            cIcon.HeaderText = "";
+            cIcon.Name = "CIcon";
+            cIcon.ImageLayout = DataGridViewImageCellLayout.Zoom;
+            cIcon.Resizable = DataGridViewTriState.False;
+            _gridCloudApps.Columns.Add(cIcon);
 
             DataGridViewTextBoxColumn cName = new DataGridViewTextBoxColumn();
             cName.HeaderText = "Application Name";
@@ -758,8 +980,9 @@ namespace TechInstaller
             DataGridViewTextBoxColumn cCat = new DataGridViewTextBoxColumn();
             cCat.HeaderText = "Category";
             cCat.Name = "CCat";
-            cCat.Width = 110;
+            cCat.Width = 115;
             cCat.ReadOnly = true;
+            cCat.DefaultCellStyle.ForeColor = ColTextSecondary;
             _gridCloudApps.Columns.Add(cCat);
 
             DataGridViewTextBoxColumn cVer = new DataGridViewTextBoxColumn();
@@ -767,6 +990,7 @@ namespace TechInstaller
             cVer.Name = "CVer";
             cVer.Width = 85;
             cVer.ReadOnly = true;
+            cVer.DefaultCellStyle.ForeColor = ColTextSecondary;
             _gridCloudApps.Columns.Add(cVer);
 
             DataGridViewTextBoxColumn cSize = new DataGridViewTextBoxColumn();
@@ -774,7 +998,17 @@ namespace TechInstaller
             cSize.Name = "CSize";
             cSize.Width = 80;
             cSize.ReadOnly = true;
+            cSize.DefaultCellStyle.ForeColor = ColTextSecondary;
             _gridCloudApps.Columns.Add(cSize);
+
+            DataGridViewTextBoxColumn cArrow = new DataGridViewTextBoxColumn();
+            cArrow.HeaderText = "";
+            cArrow.Name = "CArrow";
+            cArrow.Width = 26;
+            cArrow.ReadOnly = true;
+            cArrow.DefaultCellStyle.ForeColor = ColTextMuted;
+            cArrow.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            _gridCloudApps.Columns.Add(cArrow);
 
             _gridCloudApps.SelectionChanged += OnGridCloudSelectionChanged;
             _gridCloudApps.CellDoubleClick += delegate { LaunchSelectedCloudApp(); };
@@ -785,62 +1019,80 @@ namespace TechInstaller
             _cloudDetailsPanel = new Panel();
             _cloudDetailsPanel.Dock = DockStyle.Fill;
             _cloudDetailsPanel.BackColor = ColCard;
-            _cloudDetailsPanel.Padding = new Padding(16);
+            _cloudDetailsPanel.Padding = new Padding(18);
+
+            _picCloudIcon = new PictureBox();
+            _picCloudIcon.Size = new Size(48, 48);
+            _picCloudIcon.Location = new Point(18, 14);
+            _picCloudIcon.SizeMode = PictureBoxSizeMode.Zoom;
+            _picCloudIcon.BackColor = Color.Transparent;
 
             _lblCloudTitle = new Label();
             _lblCloudTitle.Text = "Application Package Details";
             _lblCloudTitle.Font = new Font("Segoe UI", 12.0F, FontStyle.Bold);
-            _lblCloudTitle.ForeColor = ColAccentBlue;
-            _lblCloudTitle.AutoSize = true;
-            _lblCloudTitle.Location = new Point(16, 12);
+            _lblCloudTitle.ForeColor = ColTextPrimary;
+            _lblCloudTitle.Location = new Point(74, 14);
+            _lblCloudTitle.Size = new Size(340, 24);
+            _lblCloudTitle.AutoEllipsis = true;
 
-            _lblCloudCategory = new Label();
-            _lblCloudCategory.Text = "📁 Category: -";
-            _lblCloudCategory.ForeColor = ColTextSecondary;
-            _lblCloudCategory.AutoSize = true;
-            _lblCloudCategory.Location = new Point(16, 38);
+            _lblCloudCategoryBadge = CreateBadgeLabel("Category", ColAccentCyan);
+            _lblCloudCategoryBadge.Location = new Point(74, 40);
 
-            _lblCloudVersion = new Label();
-            _lblCloudVersion.Text = "🏷️ Version: -";
-            _lblCloudVersion.ForeColor = ColTextSecondary;
-            _lblCloudVersion.AutoSize = true;
-            _lblCloudVersion.Location = new Point(16, 58);
+            _lblCloudVersionBadge = CreateBadgeLabel("Version", ColAccentGreen);
+            _lblCloudVersionBadge.Location = new Point(180, 40);
 
-            _lblCloudSize = new Label();
-            _lblCloudSize.Text = "💾 Package Size: -";
-            _lblCloudSize.ForeColor = ColTextSecondary;
-            _lblCloudSize.AutoSize = true;
-            _lblCloudSize.Location = new Point(16, 78);
+            TableLayoutPanel cloudMetaTable = new TableLayoutPanel();
+            cloudMetaTable.Location = new Point(18, 72);
+            cloudMetaTable.Size = new Size(420, 48);
+            cloudMetaTable.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            cloudMetaTable.ColumnCount = 4;
+            cloudMetaTable.RowCount = 2;
+            cloudMetaTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));
+            cloudMetaTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30F));
+            cloudMetaTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));
+            cloudMetaTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30F));
+
+            cloudMetaTable.Controls.Add(CreateMutedLabel("Category:"), 0, 0);
+            _lblCloudValCat = CreateBoldValueLabel("-");
+            cloudMetaTable.Controls.Add(_lblCloudValCat, 1, 0);
+
+            cloudMetaTable.Controls.Add(CreateMutedLabel("Version:"), 2, 0);
+            _lblCloudValVer = CreateBoldValueLabel("-");
+            cloudMetaTable.Controls.Add(_lblCloudValVer, 3, 0);
+
+            cloudMetaTable.Controls.Add(CreateMutedLabel("Est. Size:"), 0, 1);
+            _lblCloudValSize = CreateBoldValueLabel("-");
+            cloudMetaTable.Controls.Add(_lblCloudValSize, 1, 1);
 
             Label lblDescHeader = new Label();
             lblDescHeader.Text = "Description & Technician Notes:";
             lblDescHeader.ForeColor = ColTextSecondary;
             lblDescHeader.Font = new Font("Segoe UI", 9.0F, FontStyle.Bold);
+            lblDescHeader.Location = new Point(18, 130);
             lblDescHeader.AutoSize = true;
-            lblDescHeader.Location = new Point(16, 106);
 
             _txtCloudDesc = new TextBox();
-            _txtCloudDesc.Location = new Point(16, 126);
-            _txtCloudDesc.Width = 400;
-            _txtCloudDesc.Height = 110;
+            _txtCloudDesc.Location = new Point(18, 150);
+            _txtCloudDesc.Width = 420;
+            _txtCloudDesc.Height = 100;
             _txtCloudDesc.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             _txtCloudDesc.Multiline = true;
             _txtCloudDesc.ReadOnly = true;
             _txtCloudDesc.BackColor = ColBg;
             _txtCloudDesc.ForeColor = ColTextPrimary;
-            _txtCloudDesc.BorderStyle = BorderStyle.None;
+            _txtCloudDesc.BorderStyle = BorderStyle.FixedSingle;
             _txtCloudDesc.Font = new Font("Segoe UI", 9.0F);
 
             Label lblUrlHeader = new Label();
             lblUrlHeader.Text = "Google Drive Target Link:";
             lblUrlHeader.ForeColor = ColTextSecondary;
             lblUrlHeader.Font = new Font("Segoe UI", 9.0F, FontStyle.Bold);
+            lblUrlHeader.Location = new Point(18, 260);
             lblUrlHeader.AutoSize = true;
-            lblUrlHeader.Location = new Point(16, 246);
 
             _txtCloudUrl = new TextBox();
-            _txtCloudUrl.Location = new Point(16, 266);
-            _txtCloudUrl.Width = 400;
+            _txtCloudUrl.Location = new Point(18, 280);
+            _txtCloudUrl.Width = 420;
             _txtCloudUrl.Height = 24;
             _txtCloudUrl.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             _txtCloudUrl.ReadOnly = true;
@@ -849,16 +1101,16 @@ namespace TechInstaller
             _txtCloudUrl.BorderStyle = BorderStyle.FixedSingle;
             _txtCloudUrl.Font = new Font("Segoe UI", 9.0F);
 
-            _btnCloudLaunchDirect = CreateStyledButton("🚀 Open Google Drive Download Page", ColAccentGreen, 300);
-            _btnCloudLaunchDirect.Height = 44;
-            _btnCloudLaunchDirect.Location = new Point(16, 306);
-            _btnCloudLaunchDirect.Font = new Font("Segoe UI", 10.5F, FontStyle.Bold);
+            _btnCloudLaunchDirect = CreatePillButton("🚀 Open Google Drive Download Page", ColAccentGreen, Color.White, 320, 42);
+            _btnCloudLaunchDirect.Location = new Point(18, 318);
+            _btnCloudLaunchDirect.Font = new Font("Segoe UI", 10.0F, FontStyle.Bold);
             _btnCloudLaunchDirect.Click += delegate { LaunchSelectedCloudApp(); };
 
+            _cloudDetailsPanel.Controls.Add(_picCloudIcon);
             _cloudDetailsPanel.Controls.Add(_lblCloudTitle);
-            _cloudDetailsPanel.Controls.Add(_lblCloudCategory);
-            _cloudDetailsPanel.Controls.Add(_lblCloudVersion);
-            _cloudDetailsPanel.Controls.Add(_lblCloudSize);
+            _cloudDetailsPanel.Controls.Add(_lblCloudCategoryBadge);
+            _cloudDetailsPanel.Controls.Add(_lblCloudVersionBadge);
+            _cloudDetailsPanel.Controls.Add(cloudMetaTable);
             _cloudDetailsPanel.Controls.Add(lblDescHeader);
             _cloudDetailsPanel.Controls.Add(_txtCloudDesc);
             _cloudDetailsPanel.Controls.Add(lblUrlHeader);
@@ -883,13 +1135,19 @@ namespace TechInstaller
             // Header banner
             Panel toolsBanner = new Panel();
             toolsBanner.Dock = DockStyle.Top;
-            toolsBanner.Height = 50;
+            toolsBanner.Height = 48;
             toolsBanner.BackColor = ColCardAlt;
-            toolsBanner.Padding = new Padding(16, 12, 16, 10);
+            toolsBanner.Padding = new Padding(18, 12, 18, 10);
+            toolsBanner.Paint += delegate(object s, PaintEventArgs pe) {
+                using (Pen p = new Pen(ColBorder, 1))
+                {
+                    pe.Graphics.DrawLine(p, 0, toolsBanner.Height - 1, toolsBanner.Width, toolsBanner.Height - 1);
+                }
+            };
 
             Label lblToolsBanner = new Label();
             lblToolsBanner.Text = "🛠️ Windows System Shortcuts, Optimization, and Configuration Utilities";
-            lblToolsBanner.Font = new Font("Segoe UI", 11.0F, FontStyle.Bold);
+            lblToolsBanner.Font = new Font("Segoe UI", 10.5F, FontStyle.Bold);
             lblToolsBanner.ForeColor = ColAccentBlue;
             lblToolsBanner.AutoSize = true;
             toolsBanner.Controls.Add(lblToolsBanner);
@@ -897,23 +1155,29 @@ namespace TechInstaller
             // Output Terminal at bottom of Tools Tab
             Panel toolsLogWrap = new Panel();
             toolsLogWrap.Dock = DockStyle.Bottom;
-            toolsLogWrap.Height = 180;
+            toolsLogWrap.Height = 170;
             toolsLogWrap.BackColor = ColCard;
-            toolsLogWrap.Padding = new Padding(12, 6, 12, 8);
+            toolsLogWrap.Padding = new Padding(14, 6, 14, 8);
+            toolsLogWrap.Paint += delegate(object s, PaintEventArgs pe) {
+                using (Pen p = new Pen(ColBorder, 1))
+                {
+                    pe.Graphics.DrawLine(p, 0, 0, toolsLogWrap.Width, 0);
+                }
+            };
 
             Label lblToolsLogTitle = new Label();
             lblToolsLogTitle.Text = "COMMAND EXECUTION OUTPUT:";
             lblToolsLogTitle.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
             lblToolsLogTitle.ForeColor = ColTextSecondary;
-            lblToolsLogTitle.Location = new Point(12, 6);
+            lblToolsLogTitle.Location = new Point(14, 6);
             lblToolsLogTitle.AutoSize = true;
 
             _rtbToolsLog = new RichTextBox();
-            _rtbToolsLog.Location = new Point(12, 26);
-            _rtbToolsLog.Width = toolsLogWrap.Width - 24;
-            _rtbToolsLog.Height = 145;
+            _rtbToolsLog.Location = new Point(14, 26);
+            _rtbToolsLog.Width = toolsLogWrap.Width - 28;
+            _rtbToolsLog.Height = 135;
             _rtbToolsLog.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            _rtbToolsLog.BackColor = Color.FromArgb(10, 15, 29);
+            _rtbToolsLog.BackColor = Color.FromArgb(6, 10, 20);
             _rtbToolsLog.ForeColor = Color.FromArgb(226, 232, 240);
             _rtbToolsLog.Font = new Font("Consolas", 9.0F);
             _rtbToolsLog.BorderStyle = BorderStyle.None;
@@ -947,7 +1211,7 @@ namespace TechInstaller
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "👁️ Show File Extensions & Hidden",
+                "👁️ Show Extensions & Hidden",
                 "Unhides file extensions (.exe, .zip, .iso) and hidden files in File Explorer.",
                 "Show Extensions & Hidden",
                 delegate {
@@ -1125,7 +1389,7 @@ namespace TechInstaller
             // -------------------------------------------------------------
             // SECTION 4: 🌐 NETWORK & CONNECTIVITY
             // -------------------------------------------------------------
-            _toolsFlowPanel.Controls.Add(CreateSectionHeader("🌐 NETWORK, TIME & DNS CONFIGURATION", Color.FromArgb(56, 189, 248)));
+            _toolsFlowPanel.Controls.Add(CreateSectionHeader("🌐 NETWORK, TIME & DNS CONFIGURATION", ColAccentCyan));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
                 "🕒 Date & Time Settings",
@@ -1134,7 +1398,8 @@ namespace TechInstaller
                 delegate {
                     LogToolMessage("Opening Windows Date & Time settings...");
                     SystemToolsManager.OpenDateAndTimeSettings();
-                }
+                },
+                ColAccentCyan
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
@@ -1145,7 +1410,8 @@ namespace TechInstaller
                     LogToolMessage("Synchronizing system time with time servers...");
                     string result = SystemToolsManager.SyncTimeNow();
                     LogToolMessage(result);
-                }
+                },
+                ColAccentCyan
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
@@ -1155,7 +1421,8 @@ namespace TechInstaller
                 delegate {
                     LogToolMessage("Opening Time Zone selector dialog...");
                     SystemToolsManager.OpenTimeZoneSettings();
-                }
+                },
+                ColAccentCyan
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
@@ -1165,7 +1432,8 @@ namespace TechInstaller
                 delegate {
                     LogToolMessage("Opening Network Connections panel...");
                     SystemToolsManager.OpenNetworkConnections();
-                }
+                },
+                ColAccentCyan
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
@@ -1176,7 +1444,8 @@ namespace TechInstaller
                     LogToolMessage("Flushing DNS resolver cache via ipconfig...");
                     string result = SystemToolsManager.FlushDns();
                     LogToolMessage(result);
-                }
+                },
+                ColAccentCyan
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
@@ -1187,7 +1456,8 @@ namespace TechInstaller
                     LogToolMessage("Configuring Cloudflare DNS servers...");
                     string res = SystemToolsManager.SetDnsServers("cloudflare");
                     LogToolMessage(res);
-                }
+                },
+                ColAccentCyan
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
@@ -1198,7 +1468,8 @@ namespace TechInstaller
                     LogToolMessage("Configuring Google Public DNS servers...");
                     string res = SystemToolsManager.SetDnsServers("google");
                     LogToolMessage(res);
-                }
+                },
+                ColAccentCyan
             ));
 
             Panel lastSec4Card = CreateToolCard(
@@ -1209,15 +1480,15 @@ namespace TechInstaller
                     LogToolMessage("Resetting DNS server configuration to DHCP...");
                     string res = SystemToolsManager.SetDnsServers("dhcp");
                     LogToolMessage(res);
-                }
+                },
+                ColAccentCyan
             );
             _toolsFlowPanel.Controls.Add(lastSec4Card);
             _toolsFlowPanel.SetFlowBreak(lastSec4Card, true);
 
             // -------------------------------------------------------------
-            // SECTION 5: 💻 AUTOMATION & PERSONALIZATION
+            // SECTION 5: 💻 AUTOMATION & CUSTOMIZATION
             // -------------------------------------------------------------
-            Color ColAccentPurple = Color.FromArgb(192, 132, 252);
             _toolsFlowPanel.Controls.Add(CreateSectionHeader("💻 AUTOMATION, SCRIPTS & CUSTOMIZATION", ColAccentPurple));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
@@ -1272,10 +1543,10 @@ namespace TechInstaller
         private Panel CreateSectionHeader(string title, Color accentColor)
         {
             Panel header = new Panel();
-            header.Width = 1080;
+            header.Width = 1100;
             header.Height = 36;
             header.Margin = new Padding(10, 16, 10, 6);
-            header.BackColor = Color.FromArgb(20, 29, 47);
+            header.BackColor = Color.FromArgb(16, 26, 48);
 
             Panel bar = new Panel();
             bar.Width = 5;
@@ -1296,19 +1567,20 @@ namespace TechInstaller
             return header;
         }
 
-        private Panel CreateToolCard(string title, string description, string buttonText, EventHandler onClick)
-        {
-            return CreateToolCard(title, description, buttonText, onClick, ColAccentBlue);
-        }
-
         private Panel CreateToolCard(string title, string description, string buttonText, EventHandler onClick, Color titleColor)
         {
             Panel card = new Panel();
-            card.Width = 340;
-            card.Height = 135;
+            card.Width = 345;
+            card.Height = 138;
             card.BackColor = ColCard;
             card.Margin = new Padding(10);
-            card.Padding = new Padding(12);
+            card.Padding = new Padding(14);
+            card.Paint += delegate(object s, PaintEventArgs pe) {
+                using (Pen p = new Pen(ColBorder, 1))
+                {
+                    pe.Graphics.DrawRectangle(p, 0, 0, card.Width - 1, card.Height - 1);
+                }
+            };
 
             Label lblT = new Label();
             lblT.Text = title;
@@ -1322,12 +1594,11 @@ namespace TechInstaller
             lblD.Font = new Font("Segoe UI", 8.5F);
             lblD.ForeColor = ColTextSecondary;
             lblD.Location = new Point(12, 36);
-            lblD.Width = 316;
+            lblD.Width = 320;
             lblD.Height = 44;
 
-            Button btn = CreateStyledButton(buttonText, ColHover, 200);
-            btn.Height = 32;
-            btn.Location = new Point(12, 88);
+            Button btn = CreatePillButton(buttonText, ColCardAlt, ColTextPrimary, 210, 32);
+            btn.Location = new Point(12, 90);
             btn.Click += onClick;
 
             card.Controls.Add(lblT);
@@ -1365,10 +1636,12 @@ namespace TechInstaller
                 int idx = _gridCloudApps.Rows.Add();
                 DataGridViewRow row = _gridCloudApps.Rows[idx];
                 row.Tag = app;
+                row.Cells["CIcon"].Value = AppIconHelper.GetAppIcon(app.Name, app.Category, 24);
                 row.Cells["CName"].Value = app.Name;
                 row.Cells["CCat"].Value = app.Category;
                 row.Cells["CVer"].Value = app.Version;
                 row.Cells["CSize"].Value = app.EstimatedSize;
+                row.Cells["CArrow"].Value = "›";
             }
 
             _gridCloudApps.ResumeLayout();
@@ -1413,11 +1686,14 @@ namespace TechInstaller
         private void DisplayCloudAppDetails(CloudAppItem app)
         {
             if (app == null) return;
+            _picCloudIcon.Image = AppIconHelper.GetAppIcon(app.Name, app.Category, 48);
             _lblCloudTitle.Text = app.Name;
-            _lblCloudCategory.Text = "📁 Category: " + app.Category;
-            _lblCloudVersion.Text = "🏷️ Version: " + app.Version;
-            _lblCloudSize.Text = "💾 Package Size: " + app.EstimatedSize;
-            _txtCloudDesc.Text = app.Description + (string.IsNullOrEmpty(app.Notes) ? "" : "\r\n\r\nNote: " + app.Notes);
+            _lblCloudCategoryBadge.Text = app.Category;
+            _lblCloudVersionBadge.Text = string.IsNullOrEmpty(app.Version) ? "v1.0" : ("v" + app.Version);
+            _lblCloudValCat.Text = app.Category;
+            _lblCloudValVer.Text = string.IsNullOrEmpty(app.Version) ? "Latest" : app.Version;
+            _lblCloudValSize.Text = string.IsNullOrEmpty(app.EstimatedSize) ? "Unknown" : app.EstimatedSize;
+            _txtCloudDesc.Text = app.Description + (string.IsNullOrEmpty(app.Notes) ? "" : "\r\n\r\nTechnician Notes: " + app.Notes);
             _txtCloudUrl.Text = app.DriveUrl;
         }
 
@@ -1445,26 +1721,42 @@ namespace TechInstaller
         // =========================================================================
         // SOFTWARE GRID LOGIC
         // =========================================================================
-        private Button CreateStyledButton(string text, Color bg, int width)
+        private Button CreatePillButton(string text, Color bg, Color foreColor, int width, int height)
         {
             Button btn = new Button();
             btn.Text = text;
             btn.BackColor = bg;
-            btn.ForeColor = ColTextPrimary;
+            btn.ForeColor = foreColor;
             btn.FlatStyle = FlatStyle.Flat;
-            btn.FlatAppearance.BorderSize = 0;
+            btn.FlatAppearance.BorderSize = 1;
+            btn.FlatAppearance.BorderColor = ColCardBorder;
             btn.Width = width;
-            btn.Height = 32;
+            btn.Height = height;
             btn.Cursor = Cursors.Hand;
             btn.Font = new Font("Segoe UI", 9.0F, FontStyle.Bold);
             return btn;
+        }
+
+        private void EnableDoubleBuffering(Control control)
+        {
+            try
+            {
+                typeof(Control).InvokeMember(
+                    "DoubleBuffered",
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.SetProperty,
+                    null,
+                    control,
+                    new object[] { true }
+                );
+            }
+            catch { }
         }
 
         private void LoadAppCatalog()
         {
             _allApps = ConfigManager.LoadApps();
             PopulateGrid(_allApps);
-            LogText(string.Format("Software catalog loaded ({0} applications ready).", _allApps.Count), LogLevel.Info);
+            LogText(string.Format("Software catalog initialized ({0} applications ready).", _allApps.Count), LogLevel.Info);
             UpdateSelectionSummary();
         }
 
@@ -1480,23 +1772,31 @@ namespace TechInstaller
                 row.Tag = app;
 
                 row.Cells["ColCheck"].Value = app.IsSelected;
+                row.Cells["ColIcon"].Value = AppIconHelper.GetAppIcon(app.Id, app.Category, 24);
                 row.Cells["ColName"].Value = app.Name;
                 row.Cells["ColCategory"].Value = app.Category;
                 row.Cells["ColSize"].Value = app.EstimatedSizeMB > 0 ? string.Format("{0} MB", app.EstimatedSizeMB) : "-";
 
                 string sourceText = app.IsCached ? "✔ USB Cache" : "☁ Download";
                 row.Cells["ColSource"].Value = sourceText;
-                row.Cells["ColSource"].Style.ForeColor = app.IsCached ? Color.FromArgb(52, 211, 153) : ColAccentBlue;
+                row.Cells["ColSource"].Style.ForeColor = app.IsCached ? ColAccentGreen : ColAccentBlue;
                 row.Cells["ColSource"].Style.Font = new Font("Segoe UI", 9.0F, FontStyle.Bold);
 
-                row.Cells["ColStatus"].Value = app.Status;
-                ApplyRowStatusColor(row, app.Status);
+                string displayStatus = (app.Status == "Pending" && app.IsCached) ? "● Cached (Offline)" : ("● " + app.Status);
+                row.Cells["ColStatus"].Value = displayStatus;
+                row.Cells["ColArrow"].Value = "›";
+
+                ApplyRowStatusColor(row, app.Status, app.IsCached);
             }
 
             _gridApps.ResumeLayout();
+            if (_gridApps.Rows.Count > 0)
+            {
+                DisplayAppDetails(_gridApps.Rows[0].Tag as AppItem);
+            }
         }
 
-        private void ApplyRowStatusColor(DataGridViewRow row, string status)
+        private void ApplyRowStatusColor(DataGridViewRow row, string status, bool isCached)
         {
             if (status == "Installed")
             {
@@ -1515,7 +1815,7 @@ namespace TechInstaller
             }
             else
             {
-                row.Cells["ColStatus"].Style.ForeColor = ColTextSecondary;
+                row.Cells["ColStatus"].Style.ForeColor = isCached ? ColAccentGreen : ColTextSecondary;
             }
         }
 
@@ -1629,19 +1929,62 @@ namespace TechInstaller
 
         private void DisplayAppDetails(AppItem app)
         {
-            _lblDetailsTitle.Text = app.Name;
-            _lblDetailsCategory.Text = "📁 Category: " + app.Category;
-            _lblDetailsSize.Text = "💾 Size: " + (app.EstimatedSizeMB > 0 ? app.EstimatedSizeMB + " MB" : "N/A");
-            _lblDetailsCache.Text = app.IsCached 
-                ? "✔ Status: Cached in USB (Instant Offline Install)" 
-                : "☁ Status: Requires Internet Download";
-            _lblDetailsCache.ForeColor = app.IsCached ? ColAccentGreen : ColAccentBlue;
+            if (app == null) return;
+            _selectedApp = app;
 
-            _lblDetailsArgs.Text = string.IsNullOrEmpty(app.SilentArgs) 
-                ? (string.IsNullOrEmpty(app.SpecialAction) ? "" : "⚙ Action: " + app.SpecialAction)
-                : "⚙ Silent Switch: " + app.SilentArgs;
+            _picDetailsIcon.Image = AppIconHelper.GetAppIcon(app.Id, app.Category, 48);
+            _lblDetailsTitle.Text = app.Name;
+            _lblDetailsCategoryBadge.Text = app.Category;
+
+            bool isPortable = !string.IsNullOrEmpty(app.SpecialAction) && app.SpecialAction.Contains("portable");
+            _lblDetailsTypeBadge.Text = isPortable ? "Portable Tool" : (app.IsCached ? "USB Offline Ready" : "Cloud Download");
+            _lblDetailsTypeBadge.ForeColor = isPortable ? ColAccentPurple : (app.IsCached ? ColAccentGreen : ColAccentBlue);
+
+            _lblValSize.Text = app.EstimatedSizeMB > 0 ? string.Format("{0} MB", app.EstimatedSizeMB) : "-";
+            _lblValStatus.Text = app.IsCached ? "✔ Cached in USB" : "☁ Needs Download";
+            _lblValStatus.ForeColor = app.IsCached ? ColAccentGreen : ColAccentBlue;
+
+            _lblValSource.Text = app.IsCached ? "Local USB Storage" : "Direct Download";
+            _lblValSwitch.Text = string.IsNullOrEmpty(app.SilentArgs)
+                ? (string.IsNullOrEmpty(app.SpecialAction) ? "Standard Setup" : app.SpecialAction)
+                : app.SilentArgs;
 
             _txtDetailsDesc.Text = app.Description;
+            _btnDetailsOpenUrl.Enabled = !string.IsNullOrEmpty(app.DownloadUrl);
+            _btnDetailsOpenFolder.Enabled = app.IsCached;
+        }
+
+        private void OpenAppHomepage(AppItem app)
+        {
+            if (app == null || string.IsNullOrEmpty(app.DownloadUrl)) return;
+            try
+            {
+                Process.Start(app.DownloadUrl);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Could not open URL: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void OpenContainingFolder(AppItem app)
+        {
+            if (app == null) return;
+            string cacheDir = ConfigManager.GetCacheDirectory();
+            if (!string.IsNullOrEmpty(app.CacheFileName))
+            {
+                string filePath = Path.Combine(cacheDir, app.CacheFileName);
+                if (File.Exists(filePath))
+                {
+                    try
+                    {
+                        Process.Start("explorer.exe", string.Format("/select,\"{0}\"", filePath));
+                        return;
+                    }
+                    catch { }
+                }
+            }
+            OpenCacheFolder();
         }
 
         private void UpdateSelectionSummary()
@@ -1668,16 +2011,21 @@ namespace TechInstaller
 
             if (count == 0)
             {
-                _lblOverallStatus.Text = "Ready. Select software items and click 'Start Installation'.";
+                _lblOverallStatus.Text = "Ready. Select software packages and click 'Start Installation'.";
+                _lblTimeEstimate.Text = "⏱️ Estimated time: ~0 min  •  Select items to begin";
             }
             else if (totalMB == 0 && count > 0)
             {
                 _lblOverallStatus.Text = string.Format("Selected: {0} applications | ALL CACHED OFFLINE (0 MB download needed!)", count);
+                int estMinutes = Math.Max(1, (count * 15) / 60);
+                _lblTimeEstimate.Text = string.Format("⏱️ Estimated installation time: ~{0}-{1} min  •  High-speed offline installation", estMinutes, estMinutes + 2);
             }
             else
             {
                 _lblOverallStatus.Text = string.Format("Selected: {0} applications ({1} offline, {2} online) | Est. Download: ~{3} MB",
                     count, cachedCount, count - cachedCount, totalMB);
+                int estMinutes = Math.Max(2, (count * 25) / 60);
+                _lblTimeEstimate.Text = string.Format("⏱️ Estimated total time: ~{0}-{1} min  •  Downloading {2} MB online", estMinutes, estMinutes + 3, totalMB);
             }
         }
 
@@ -1707,7 +2055,7 @@ namespace TechInstaller
 
             if (missing.Count == 0)
             {
-                MessageBox.Show("All software items are already cached in your USB!", "Cache Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("All software packages are already cached in your USB!", "Cache Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -1748,7 +2096,7 @@ namespace TechInstaller
 
             if (selected.Count == 0)
             {
-                MessageBox.Show("Please select at least one software item to install.", "No Software Selected", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Please select at least one software package to install.", "No Software Selected", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -1785,7 +2133,7 @@ namespace TechInstaller
 
             if (percent >= 100)
             {
-                _btnAction.Text = "🚀 START INSTALLATION";
+                _btnAction.Text = "▶ Start Installation  ∨";
                 _btnAction.BackColor = ColAccentGreen;
                 _btnAction.Enabled = true;
                 ConfigManager.RefreshCacheStatus(_allApps);
@@ -1817,13 +2165,14 @@ namespace TechInstaller
             {
                 if (row.Tag == app)
                 {
-                    row.Cells["ColStatus"].Value = app.Status;
-                    ApplyRowStatusColor(row, app.Status);
+                    string displayStatus = (app.Status == "Pending" && app.IsCached) ? "● Cached (Offline)" : ("● " + app.Status);
+                    row.Cells["ColStatus"].Value = displayStatus;
+                    ApplyRowStatusColor(row, app.Status, app.IsCached);
 
                     if (app.IsCached)
                     {
                         row.Cells["ColSource"].Value = "✔ USB Cache";
-                        row.Cells["ColSource"].Style.ForeColor = Color.FromArgb(52, 211, 153);
+                        row.Cells["ColSource"].Style.ForeColor = ColAccentGreen;
                     }
                     break;
                 }
