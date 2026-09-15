@@ -61,6 +61,15 @@ $refArgs = $references | ForEach-Object { "/r:$_" }
 
 $iconFile = Join-Path $srcDir "app.ico"
 
+# Collect embedded icon resources
+$assetsDir = Join-Path $root "assets\icons"
+$resArgs = @()
+if (Test-Path $assetsDir) {
+    $resArgs = Get-ChildItem -Path $assetsDir -Filter "*.png" | ForEach-Object {
+        "/res:`"$($_.FullName)`",TechInstaller.Icons.$($_.Name)"
+    }
+}
+
 $compilerArgs = @(
     "/target:winexe",
     "/optimize+",
@@ -68,7 +77,7 @@ $compilerArgs = @(
     "/win32manifest:`"$manifest`"",
     "/win32icon:`"$iconFile`"",
     "/out:`"$outFile`""
-) + $refArgs + $csFiles
+) + $refArgs + $resArgs + $csFiles
 
 # Run compilation
 $process = Start-Process -FilePath $csc -ArgumentList $compilerArgs -NoNewWindow -Wait -PassThru
@@ -81,6 +90,12 @@ if ($process.ExitCode -eq 0 -and (Test-Path $outFile)) {
     # Copy app.ico to output
     if (Test-Path $iconFile) {
         Copy-Item -Path $iconFile -Destination (Join-Path $outDir "app.ico") -Force
+    }
+
+    # Copy assets/icons to output
+    $assetsSrc = Join-Path $root "assets"
+    if (Test-Path $assetsSrc) {
+        Copy-Item -Path $assetsSrc -Destination $outDir -Recurse -Force
     }
 
     # Ensure scripts directory exists and copy custom.ps1

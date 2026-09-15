@@ -195,7 +195,7 @@ namespace TechInstaller
             };
 
             _lblTitle = new Label();
-            _lblTitle.Text = "⚡ TECH INSTALLER — Post-Install Tech Toolbox";
+            _lblTitle.Text = "TECH INSTALLER — Post-Install Tech Toolbox";
             _lblTitle.Font = new Font("Segoe UI", 13.5F, FontStyle.Bold);
             _lblTitle.ForeColor = ColTextPrimary;
             _lblTitle.AutoSize = true;
@@ -206,8 +206,8 @@ namespace TechInstaller
             string arch = Environment.Is64BitOperatingSystem ? "64-bit" : "32-bit";
             string rootDrive = Path.GetPathRoot(ConfigManager.GetAppDirectory());
             bool isOnline = NetworkInterface.GetIsNetworkAvailable();
-            _lblSubtitle.Text = string.Format("💻 OS: {0} ({1})  •  💾 Drive: {2}  •  {3} {4}  •  🛡️ Admin Mode Active",
-                osName, arch, rootDrive, isOnline ? "🟢" : "🔴", isOnline ? "Online" : "Offline");
+            _lblSubtitle.Text = string.Format("OS: {0} ({1})   •   Drive: {2}   •   Network: {3}   •   Administrator Mode",
+                osName, arch, rootDrive, isOnline ? "Online" : "Offline");
             _lblSubtitle.Font = new Font("Segoe UI", 9.0F);
             _lblSubtitle.ForeColor = ColTextSecondary;
             _lblSubtitle.AutoSize = true;
@@ -221,10 +221,10 @@ namespace TechInstaller
             _topButtonsPanel.BackColor = Color.Transparent;
             _topButtonsPanel.Padding = new Padding(0, 8, 0, 0);
 
-            _btnReload = CreatePillButton("🔄 Reload", ColCardAlt, ColTextPrimary, 95, 34);
+            _btnReload = CreatePillButton(" Reload", UiIcon.Reload, ColCardAlt, ColTextPrimary, 105, 34);
             _btnReload.Click += delegate { LoadAppCatalog(); LoadCloudAppCatalog(); };
 
-            Button btnSyncGitHub = CreatePillButton("☁️ Sync from GitHub", ColAccentCyan, Color.White, 160, 34);
+            Button btnSyncGitHub = CreatePillButton(" Sync from GitHub", UiIcon.SyncGit, ColAccentCyan, Color.White, 175, 34);
             btnSyncGitHub.Click += delegate {
                 string msg;
                 bool ok = ConfigManager.FetchFromGitHub(out msg);
@@ -233,10 +233,10 @@ namespace TechInstaller
                 MessageBox.Show(msg, ok ? "GitHub Sync Complete" : "GitHub Sync Notice", MessageBoxButtons.OK, ok ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
             };
 
-            _btnDownloadAll = CreatePillButton("⬇️ Cache All to USB", Color.FromArgb(37, 99, 235), Color.White, 150, 34);
+            _btnDownloadAll = CreatePillButton(" Cache All to USB", UiIcon.DownloadCloud, Color.FromArgb(37, 99, 235), Color.White, 165, 34);
             _btnDownloadAll.Click += delegate { DownloadAllMissingToCache(); };
 
-            _btnOpenCache = CreatePillButton("📁 Open USB Cache", ColCardAlt, ColTextPrimary, 140, 34);
+            _btnOpenCache = CreatePillButton(" Open USB Cache", UiIcon.OpenFolder, ColCardAlt, ColTextPrimary, 155, 34);
             _btnOpenCache.Click += delegate { OpenCacheFolder(); };
 
             _topButtonsPanel.Controls.Add(_btnReload);
@@ -261,13 +261,13 @@ namespace TechInstaller
                 }
             };
 
-            _btnNavSoftware = CreateNavTabButton("⊞ Standard Software (USB)", true);
+            _btnNavSoftware = CreateNavTabButton("Standard Software (USB)", UiIcon.NavSoftware, true);
             _btnNavSoftware.Click += delegate { ShowTab("software"); };
 
-            _btnNavCloud = CreateNavTabButton("▲ Google Drive Apps", false);
+            _btnNavCloud = CreateNavTabButton("Google Drive Apps", UiIcon.NavCloud, false);
             _btnNavCloud.Click += delegate { ShowTab("cloud"); };
 
-            _btnNavTools = CreateNavTabButton("🛠️ System Tools & Tweaks", false);
+            _btnNavTools = CreateNavTabButton("System Tools & Tweaks", UiIcon.NavTools, false);
             _btnNavTools.Click += delegate { ShowTab("tools"); };
 
             _navPanel.Controls.Add(_btnNavTools);
@@ -380,10 +380,14 @@ namespace TechInstaller
             return base.ProcessCmdKey(ref msg, keyData);
         }
 
-        private Button CreateNavTabButton(string text, bool isActive)
+        private Button CreateNavTabButton(string text, UiIcon icon, bool isActive)
         {
             Button btn = new Button();
-            btn.Text = text;
+            btn.UseMnemonic = false;
+            btn.Text = "  " + text;
+            btn.Image = UiIconHelper.GetIcon(icon, 16, isActive ? Color.White : ColTextSecondary);
+            btn.TextImageRelation = TextImageRelation.ImageBeforeText;
+            btn.ImageAlign = ContentAlignment.MiddleLeft;
             btn.Height = 34;
             btn.Width = 235;
             btn.Dock = DockStyle.Left;
@@ -402,17 +406,18 @@ namespace TechInstaller
             _panelCloud.Visible = (tab == "cloud");
             _panelTools.Visible = (tab == "tools");
 
-            SetNavTabActive(_btnNavSoftware, tab == "software");
-            SetNavTabActive(_btnNavCloud, tab == "cloud");
-            SetNavTabActive(_btnNavTools, tab == "tools");
+            SetNavTabActive(_btnNavSoftware, UiIcon.NavSoftware, tab == "software");
+            SetNavTabActive(_btnNavCloud, UiIcon.NavCloud, tab == "cloud");
+            SetNavTabActive(_btnNavTools, UiIcon.NavTools, tab == "tools");
 
             AdjustSplitters();
         }
 
-        private void SetNavTabActive(Button btn, bool active)
+        private void SetNavTabActive(Button btn, UiIcon icon, bool active)
         {
             btn.BackColor = active ? ColAccentCyan : Color.Transparent;
             btn.ForeColor = active ? Color.White : ColTextSecondary;
+            btn.Image = UiIconHelper.GetIcon(icon, 16, active ? Color.White : ColTextSecondary);
         }
 
         // =========================================================================
@@ -440,18 +445,19 @@ namespace TechInstaller
             _presetButtonsPanel = new FlowLayoutPanel();
             _presetButtonsPanel.Dock = DockStyle.Fill;
             _presetButtonsPanel.FlowDirection = FlowDirection.LeftToRight;
+            _presetButtonsPanel.WrapContents = false;
             _presetButtonsPanel.BackColor = Color.Transparent;
 
-            _btnPresetEssentials = CreatePillButton("★ Essentials", ColCard, ColAccentAmber, 115, 32);
+            _btnPresetEssentials = CreatePillButton(" Essentials", UiIcon.Star, ColCard, ColAccentAmber, 120, 32);
             _btnPresetEssentials.Click += delegate { ApplyPreset("essential"); };
 
-            _btnPresetRuntimes = CreatePillButton("⚡ All Runtimes", ColCard, ColAccentPurple, 120, 32);
+            _btnPresetRuntimes = CreatePillButton(" All Runtimes", UiIcon.Lightning, ColCard, ColAccentPurple, 125, 32);
             _btnPresetRuntimes.Click += delegate { ApplyPreset("runtime"); };
 
-            _btnPresetGaming = CreatePillButton("🎮 Gaming PC", ColCard, ColAccentBlue, 115, 32);
+            _btnPresetGaming = CreatePillButton(" Gaming PC", UiIcon.Gamepad, ColCard, ColAccentBlue, 120, 32);
             _btnPresetGaming.Click += delegate { ApplyPreset("gaming"); };
 
-            _btnPresetOffice = CreatePillButton("💼 Office Setup", ColCard, ColAccentGreen, 115, 32);
+            _btnPresetOffice = CreatePillButton(" Office Setup", UiIcon.Briefcase, ColCard, ColAccentGreen, 120, 32);
             _btnPresetOffice.Click += delegate { ApplyPreset("office"); };
 
             Label lblDivider = new Label();
@@ -461,10 +467,10 @@ namespace TechInstaller
             lblDivider.Margin = new Padding(6, 6, 6, 0);
             lblDivider.Font = new Font("Segoe UI", 11.0F);
 
-            _btnSelectAll = CreatePillButton("☑ Select All", Color.FromArgb(24, 42, 77), ColAccentBlue, 100, 32);
+            _btnSelectAll = CreatePillButton(" Select All", UiIcon.CheckAll, Color.FromArgb(24, 42, 77), ColAccentBlue, 110, 32);
             _btnSelectAll.Click += delegate { SetAllSelection(true); };
 
-            _btnDeselectAll = CreatePillButton("☐ Clear", ColCard, ColTextSecondary, 80, 32);
+            _btnDeselectAll = CreatePillButton(" Clear", UiIcon.Clear, ColCard, ColTextSecondary, 85, 32);
             _btnDeselectAll.Click += delegate { SetAllSelection(false); };
 
             _presetButtonsPanel.Controls.Add(_btnPresetEssentials);
@@ -482,7 +488,8 @@ namespace TechInstaller
             _searchPanel.BackColor = Color.Transparent;
 
             _lblSearch = new Label();
-            _lblSearch.Text = "🔍";
+            _lblSearch.Font = UiIconHelper.CreateIconFont(11.0F);
+            _lblSearch.Text = UiIconHelper.GetGlyph(UiIcon.Search);
             _lblSearch.AutoSize = true;
             _lblSearch.Location = new Point(4, 9);
             _lblSearch.ForeColor = ColTextSecondary;
@@ -515,6 +522,8 @@ namespace TechInstaller
 
             _presetPanel.Controls.Add(_searchPanel);
             _presetPanel.Controls.Add(_presetButtonsPanel);
+            _searchPanel.SendToBack();
+            _presetButtonsPanel.BringToFront();
 
             // Bottom Action & Progress Bar
             _bottomPanel = new Panel();
@@ -548,7 +557,7 @@ namespace TechInstaller
             _lblOverallStatus.Location = new Point(0, 3);
 
             _lblTimeEstimate = new Label();
-            _lblTimeEstimate.Text = "⏱️ Estimated time: ~2-5 min  •  Automated silent installation";
+            _lblTimeEstimate.Text = "Estimated time: ~2-5 min  •  Automated silent installation";
             _lblTimeEstimate.AutoSize = true;
             _lblTimeEstimate.ForeColor = ColTextSecondary;
             _lblTimeEstimate.Font = new Font("Segoe UI", 8.5F);
@@ -583,7 +592,10 @@ namespace TechInstaller
             bottomButtonContainer.Padding = new Padding(12, 12, 0, 12);
 
             _btnAction = new Button();
-            _btnAction.Text = "▶ Start Installation  ∨";
+            _btnAction.Text = "  Start Installation";
+            _btnAction.Image = UiIconHelper.GetIcon(UiIcon.Play, 18, Color.White);
+            _btnAction.TextImageRelation = TextImageRelation.ImageBeforeText;
+            _btnAction.ImageAlign = ContentAlignment.MiddleCenter;
             _btnAction.Dock = DockStyle.Fill;
             _btnAction.BackColor = ColAccentGreen;
             _btnAction.ForeColor = Color.White;
@@ -620,7 +632,7 @@ namespace TechInstaller
             _gridApps.AllowUserToResizeRows = false;
             _gridApps.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             _gridApps.MultiSelect = false;
-            _gridApps.RowTemplate.Height = 38;
+            _gridApps.RowTemplate.Height = 42;
 
             _gridApps.ColumnHeadersHeight = 36;
             _gridApps.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
@@ -650,10 +662,11 @@ namespace TechInstaller
             _gridApps.Columns.Add(colCheck);
 
             DataGridViewImageColumn colIcon = new DataGridViewImageColumn();
-            colIcon.Width = 34;
+            colIcon.Width = 44;
             colIcon.HeaderText = "";
             colIcon.Name = "ColIcon";
-            colIcon.ImageLayout = DataGridViewImageCellLayout.Zoom;
+            colIcon.ImageLayout = DataGridViewImageCellLayout.Normal;
+            colIcon.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
             colIcon.Resizable = DataGridViewTriState.False;
             _gridApps.Columns.Add(colIcon);
 
@@ -807,11 +820,11 @@ namespace TechInstaller
             _detailsActions.FlowDirection = FlowDirection.LeftToRight;
             _detailsActions.WrapContents = true;
 
-            _btnDetailsOpenUrl = CreatePillButton("🌐 Homepage / Info", ColCardAlt, ColAccentBlue, 150, 30);
+            _btnDetailsOpenUrl = CreatePillButton(" Homepage / Info", UiIcon.ExternalLink, ColCardAlt, ColAccentBlue, 160, 30);
             _btnDetailsOpenUrl.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
             _btnDetailsOpenUrl.Click += delegate { OpenAppHomepage(_selectedApp); };
 
-            _btnDetailsOpenFolder = CreatePillButton("📁 Open USB Location", ColCardAlt, ColAccentGreen, 160, 30);
+            _btnDetailsOpenFolder = CreatePillButton(" Open USB Location", UiIcon.OpenFolder, ColCardAlt, ColAccentGreen, 170, 30);
             _btnDetailsOpenFolder.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
             _btnDetailsOpenFolder.Click += delegate { OpenContainingFolder(_selectedApp); };
 
@@ -849,7 +862,7 @@ namespace TechInstaller
             _lblLogTitle.AutoSize = true;
             _lblLogTitle.Location = new Point(28, 8);
 
-            _btnClearLog = CreatePillButton("🧹 Clear", ColCard, ColTextSecondary, 65, 22);
+            _btnClearLog = CreatePillButton(" Clear", UiIcon.Trash, ColCard, ColTextSecondary, 80, 24);
             _btnClearLog.Font = new Font("Segoe UI", 8.0F);
             _btnClearLog.Dock = DockStyle.Right;
             _btnClearLog.Click += delegate { _rtbLog.Clear(); };
@@ -933,16 +946,16 @@ namespace TechInstaller
                 }
             };
 
-            _btnCloudOpen = CreatePillButton("🌐 Open in Browser", ColAccentGreen, Color.White, 155, 32);
+            _btnCloudOpen = CreatePillButton(" Open in Browser", UiIcon.ExternalLink, ColAccentGreen, Color.White, 160, 32);
             _btnCloudOpen.Click += delegate { LaunchSelectedCloudApp(); };
 
-            _btnCloudEditConfig = CreatePillButton("📝 Edit Links", ColCard, ColTextPrimary, 120, 32);
+            _btnCloudEditConfig = CreatePillButton(" Edit Links", UiIcon.Edit, ColCard, ColTextPrimary, 120, 32);
             _btnCloudEditConfig.Click += delegate { ConfigManager.OpenCloudConfigInEditor(); };
 
-            _btnCloudReload = CreatePillButton("🔄 Refresh", ColCard, ColTextPrimary, 95, 32);
+            _btnCloudReload = CreatePillButton(" Refresh", UiIcon.Reload, ColCard, ColTextPrimary, 105, 32);
             _btnCloudReload.Click += delegate { LoadCloudAppCatalog(); };
 
-            Button btnCloudAdd = CreatePillButton("➕ Add App", Color.FromArgb(16, 185, 129), Color.White, 110, 32);
+            Button btnCloudAdd = CreatePillButton(" Add App", UiIcon.Add, Color.FromArgb(16, 185, 129), Color.White, 110, 32);
             btnCloudAdd.Click += delegate {
                 using (AddCloudAppForm dlg = new AddCloudAppForm())
                 {
@@ -956,7 +969,7 @@ namespace TechInstaller
                 }
             };
 
-            Button btnCloudDelete = CreatePillButton("🗑️ Delete", Color.FromArgb(185, 28, 28), Color.White, 95, 32);
+            Button btnCloudDelete = CreatePillButton(" Delete", UiIcon.Trash, Color.FromArgb(185, 28, 28), Color.White, 100, 32);
             btnCloudDelete.Click += delegate {
                 if (_gridCloudApps.SelectedRows.Count == 0) return;
                 CloudAppItem sel = _gridCloudApps.SelectedRows[0].Tag as CloudAppItem;
@@ -970,7 +983,7 @@ namespace TechInstaller
                 }
             };
 
-            Button btnCloudPush = CreatePillButton("🚀 Push to GitHub", Color.FromArgb(79, 70, 229), Color.White, 145, 32);
+            Button btnCloudPush = CreatePillButton(" Push to GitHub", UiIcon.CloudUpload, Color.FromArgb(79, 70, 229), Color.White, 155, 32);
             btnCloudPush.Click += delegate {
                 string msg;
                 ConfigManager.PushToGitHub(out msg);
@@ -991,7 +1004,8 @@ namespace TechInstaller
             searchWrap.Width = 240;
 
             Label lblCSearch = new Label();
-            lblCSearch.Text = "🔍";
+            lblCSearch.Font = UiIconHelper.CreateIconFont(11.0F);
+            lblCSearch.Text = UiIconHelper.GetGlyph(UiIcon.Search);
             lblCSearch.AutoSize = true;
             lblCSearch.Location = new Point(6, 10);
             lblCSearch.ForeColor = ColTextSecondary;
@@ -1010,6 +1024,8 @@ namespace TechInstaller
 
             _cloudTopBar.Controls.Add(searchWrap);
             _cloudTopBar.Controls.Add(leftFlow);
+            searchWrap.SendToBack();
+            leftFlow.BringToFront();
 
             // Split Container
             _cloudSplitContainer = new SplitContainer();
@@ -1032,7 +1048,7 @@ namespace TechInstaller
             _gridCloudApps.AllowUserToResizeRows = false;
             _gridCloudApps.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             _gridCloudApps.MultiSelect = false;
-            _gridCloudApps.RowTemplate.Height = 38;
+            _gridCloudApps.RowTemplate.Height = 42;
 
             _gridCloudApps.ColumnHeadersHeight = 36;
             _gridCloudApps.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
@@ -1054,10 +1070,11 @@ namespace TechInstaller
             EnableDoubleBuffering(_gridCloudApps);
 
             DataGridViewImageColumn cIcon = new DataGridViewImageColumn();
-            cIcon.Width = 34;
+            cIcon.Width = 44;
             cIcon.HeaderText = "";
             cIcon.Name = "CIcon";
-            cIcon.ImageLayout = DataGridViewImageCellLayout.Zoom;
+            cIcon.ImageLayout = DataGridViewImageCellLayout.Normal;
+            cIcon.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
             cIcon.Resizable = DataGridViewTriState.False;
             _gridCloudApps.Columns.Add(cIcon);
 
@@ -1198,7 +1215,7 @@ namespace TechInstaller
             _txtCloudUrl.BorderStyle = BorderStyle.FixedSingle;
             _txtCloudUrl.Font = new Font("Segoe UI", 9.0F);
 
-            _btnCloudLaunchDirect = CreatePillButton("🚀 Open Google Drive Download Page", ColAccentGreen, Color.White, 350, 38);
+            _btnCloudLaunchDirect = CreatePillButton(" Open Google Drive Download Page", UiIcon.ExternalLink, ColAccentGreen, Color.White, 350, 38);
             _btnCloudLaunchDirect.Location = new Point(16, 287);
             _btnCloudLaunchDirect.Size = new Size(350, 38);
             _btnCloudLaunchDirect.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
@@ -1245,11 +1262,21 @@ namespace TechInstaller
                 }
             };
 
+            PictureBox picToolsBanner = new PictureBox();
+            picToolsBanner.Size = new Size(18, 18);
+            picToolsBanner.Location = new Point(16, 14);
+            picToolsBanner.Image = UiIconHelper.GetIcon(UiIcon.Wrench, 16, ColAccentBlue);
+            picToolsBanner.BackColor = Color.Transparent;
+
             Label lblToolsBanner = new Label();
-            lblToolsBanner.Text = "🛠️ Windows System Shortcuts, Optimization, and Configuration Utilities";
-            lblToolsBanner.Font = new Font("Segoe UI", 10.5F, FontStyle.Bold);
+            lblToolsBanner.Text = "Windows System Shortcuts, Optimization, and Configuration Utilities";
+            lblToolsBanner.Font = new Font("Segoe UI", 10.0F, FontStyle.Bold);
             lblToolsBanner.ForeColor = ColAccentBlue;
             lblToolsBanner.AutoSize = true;
+            lblToolsBanner.Location = new Point(40, 13);
+            lblToolsBanner.UseMnemonic = false;
+
+            toolsBanner.Controls.Add(picToolsBanner);
             toolsBanner.Controls.Add(lblToolsBanner);
 
             // Output Terminal at bottom of Tools Tab
@@ -1294,14 +1321,15 @@ namespace TechInstaller
             _toolsFlowPanel.BackColor = ColBg;
 
             // -------------------------------------------------------------
-            // SECTION 1: ⚡ PERFORMANCE & 1-CLICK TWEAKS
+            // SECTION 1: PERFORMANCE & 1-CLICK TWEAKS
             // -------------------------------------------------------------
-            _toolsFlowPanel.Controls.Add(CreateSectionHeader("⚡ PERFORMANCE & 1-CLICK WINDOWS TWEAKS", ColAccentAmber));
+            _toolsFlowPanel.Controls.Add(CreateSectionHeader("PERFORMANCE & 1-CLICK WINDOWS TWEAKS", UiIcon.Speed, ColAccentAmber));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "⚡ Ultimate Performance Plan",
+                "Ultimate Performance Plan",
                 "Enables Windows Ultimate Performance plan to prevent CPU throttling and maximize FPS.",
                 "Activate Ultimate Plan",
+                UiIcon.Lightning,
                 delegate {
                     LogToolMessage("Activating Ultimate Performance Power Plan...");
                     string res = SystemToolsManager.EnableUltimatePerformance();
@@ -1311,9 +1339,10 @@ namespace TechInstaller
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "👁️ Show Extensions & Hidden",
+                "Show Extensions & Hidden",
                 "Unhides file extensions (.exe, .zip, .iso) and hidden files in File Explorer.",
                 "Show Extensions & Hidden",
+                UiIcon.Settings,
                 delegate {
                     LogToolMessage("Updating Explorer folder view settings...");
                     string res = SystemToolsManager.ToggleShowFileExtensions();
@@ -1323,9 +1352,10 @@ namespace TechInstaller
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "🔋 Disable Hibernation (Save 8-16 GB)",
+                "Disable Hibernation (Save 8-16 GB)",
                 "Deletes hiberfil.sys and disables hibernation to immediately reclaim SSD storage.",
                 "Disable Hibernation",
+                UiIcon.Power,
                 delegate {
                     LogToolMessage("Disabling Windows Hibernation...");
                     string res = SystemToolsManager.DisableHibernation();
@@ -1335,9 +1365,10 @@ namespace TechInstaller
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "🧹 1-Click Temp & Junk Cleaner",
+                "1-Click Temp & Junk Cleaner",
                 "Safely cleans %temp%, Windows Temp, and Prefetch junk cache to free up disk space.",
                 "Clean Temp Files",
+                UiIcon.Clean,
                 delegate {
                     LogToolMessage("Cleaning temporary and cache junk files...");
                     string res = SystemToolsManager.CleanJunkAndTempFiles();
@@ -1347,9 +1378,10 @@ namespace TechInstaller
             ));
 
             Panel lastSec1Card = CreateToolCard(
-                "🩺 System File Repair (SFC & DISM)",
+                "System File Repair (SFC & DISM)",
                 "Scans and repairs corrupted Windows system files and component store.",
                 "Run SFC & DISM Scan",
+                UiIcon.Shield,
                 delegate {
                     LogToolMessage("Launching elevated System File Checker & DISM repair...");
                     SystemToolsManager.RunSystemFileCheck();
@@ -1360,14 +1392,15 @@ namespace TechInstaller
             _toolsFlowPanel.SetFlowBreak(lastSec1Card, true);
 
             // -------------------------------------------------------------
-            // SECTION 2: 🖥️ HARDWARE & DIAGNOSTICS
+            // SECTION 2: HARDWARE & DIAGNOSTICS
             // -------------------------------------------------------------
-            _toolsFlowPanel.Controls.Add(CreateSectionHeader("🖥️ HARDWARE, DRIVERS & DIAGNOSTICS", ColAccentBlue));
+            _toolsFlowPanel.Controls.Add(CreateSectionHeader("HARDWARE, DRIVERS & DIAGNOSTICS", UiIcon.Chip, ColAccentBlue));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "🖥️ Device Manager",
+                "Device Manager",
                 "Check hardware devices, installed components, and missing drivers.",
                 "Open devmgmt.msc",
+                UiIcon.Settings,
                 delegate {
                     LogToolMessage("Launching Windows Device Manager...");
                     SystemToolsManager.OpenDeviceManager();
@@ -1376,9 +1409,10 @@ namespace TechInstaller
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "⚡ IObit Driver Booster",
+                "IObit Driver Booster",
                 "Extract and run Driver Booster to automatically scan & install missing hardware drivers.",
-                "🚀 Launch Driver Booster",
+                "Launch Driver Booster",
+                UiIcon.Lightning,
                 delegate {
                     LogToolMessage("Checking IObit Driver Booster Portable...");
                     string res = SystemToolsManager.LaunchOrDeployDriverBooster();
@@ -1388,9 +1422,10 @@ namespace TechInstaller
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "💿 CrystalDiskInfo (Portable)",
+                "CrystalDiskInfo (Portable)",
                 "Inspect SSD/HDD health, remaining life percentage, temperature, and SMART status.",
-                "🚀 Launch CrystalDiskInfo",
+                "Launch CrystalDiskInfo",
+                UiIcon.HardDrive,
                 delegate {
                     LogToolMessage("Checking CrystalDiskInfo Portable...");
                     string res = SystemToolsManager.LaunchCrystalDiskInfo();
@@ -1400,9 +1435,10 @@ namespace TechInstaller
             ));
 
             Panel lastSec2Card = CreateToolCard(
-                "⚙️ CPU-Z (Portable)",
+                "CPU-Z (Portable)",
                 "View detailed CPU clock speeds, Motherboard model, and Dual-Channel RAM specs.",
-                "🚀 Launch CPU-Z",
+                "Launch CPU-Z",
+                UiIcon.Chip,
                 delegate {
                     LogToolMessage("Checking CPU-Z Portable...");
                     string res = SystemToolsManager.LaunchCpuZ();
@@ -1414,14 +1450,15 @@ namespace TechInstaller
             _toolsFlowPanel.SetFlowBreak(lastSec2Card, true);
 
             // -------------------------------------------------------------
-            // SECTION 3: 🛠️ WINDOWS ADMINISTRATION
+            // SECTION 3: WINDOWS ADMINISTRATION
             // -------------------------------------------------------------
-            _toolsFlowPanel.Controls.Add(CreateSectionHeader("🛠️ WINDOWS SYSTEM ADMINISTRATION", ColAccentGreen));
+            _toolsFlowPanel.Controls.Add(CreateSectionHeader("WINDOWS SYSTEM ADMINISTRATION", UiIcon.Wrench, ColAccentGreen));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "💾 Disk Management (diskmgmt.msc)",
+                "Disk Management (diskmgmt.msc)",
                 "Partition drives, initialize new SSD/HDD, shrink/extend volumes, and create Drive D:.",
                 "Open diskmgmt.msc",
+                UiIcon.HardDrive,
                 delegate {
                     LogToolMessage("Opening Windows Disk Management console...");
                     SystemToolsManager.OpenDiskManagement();
@@ -1430,9 +1467,10 @@ namespace TechInstaller
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "📋 System Properties (sysdm.cpl)",
+                "System Properties (sysdm.cpl)",
                 "Rename PC, change Workgroup, and configure Pagefile / Virtual Memory.",
                 "Open sysdm.cpl",
+                UiIcon.Document,
                 delegate {
                     LogToolMessage("Opening System Properties (Advanced)...");
                     SystemToolsManager.OpenSystemPropertiesAdvanced();
@@ -1441,9 +1479,10 @@ namespace TechInstaller
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "🚀 Task Manager & Startup Apps",
+                "Task Manager & Startup Apps",
                 "Inspect real-time CPU/RAM usage, kill hanging processes, and manage startup programs.",
                 "Open Task Manager",
+                UiIcon.Speed,
                 delegate {
                     LogToolMessage("Launching Windows Task Manager...");
                     SystemToolsManager.OpenTaskManager();
@@ -1452,9 +1491,10 @@ namespace TechInstaller
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "⚙️ Windows Services (services.msc)",
+                "Windows Services (services.msc)",
                 "Manage background Windows services, start/stop services, and set startup types.",
                 "Open services.msc",
+                UiIcon.Settings,
                 delegate {
                     LogToolMessage("Opening Windows Services console...");
                     SystemToolsManager.OpenServicesManager();
@@ -1463,9 +1503,10 @@ namespace TechInstaller
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "🛡️ Windows Defender Security",
+                "Windows Defender Security",
                 "Open Windows Security settings, Virus & Threat Protection, and file exclusions.",
                 "Open Windows Security",
+                UiIcon.Shield,
                 delegate {
                     LogToolMessage("Opening Windows Security...");
                     SystemToolsManager.OpenWindowsSecurity();
@@ -1474,9 +1515,10 @@ namespace TechInstaller
             ));
 
             Panel lastSec3Card = CreateToolCard(
-                "🔑 Windows Activation & License",
+                "Windows Activation & License",
                 "Check genuine activation status or enter product key in Windows Settings.",
                 "Open Activation",
+                UiIcon.Key,
                 delegate {
                     LogToolMessage("Opening Windows Activation & Licensing panel...");
                     SystemToolsManager.OpenActivationSettings();
@@ -1487,14 +1529,15 @@ namespace TechInstaller
             _toolsFlowPanel.SetFlowBreak(lastSec3Card, true);
 
             // -------------------------------------------------------------
-            // SECTION 4: 🌐 NETWORK & CONNECTIVITY
+            // SECTION 4: NETWORK & CONNECTIVITY
             // -------------------------------------------------------------
-            _toolsFlowPanel.Controls.Add(CreateSectionHeader("🌐 NETWORK, TIME & DNS CONFIGURATION", ColAccentCyan));
+            _toolsFlowPanel.Controls.Add(CreateSectionHeader("NETWORK, TIME & DNS CONFIGURATION", UiIcon.Network, ColAccentCyan));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "🕒 Date & Time Settings",
+                "Date & Time Settings",
                 "Open Windows Settings to configure clock, automatic time, and calendar.",
                 "Open Time Settings",
+                UiIcon.ClockCircle,
                 delegate {
                     LogToolMessage("Opening Windows Date & Time settings...");
                     SystemToolsManager.OpenDateAndTimeSettings();
@@ -1503,9 +1546,10 @@ namespace TechInstaller
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "🔄 Sync Internet Time Now",
+                "Sync Internet Time Now",
                 "Force resynchronization of system clock with Windows Internet Time servers.",
                 "Sync Clock Now",
+                UiIcon.Reload,
                 delegate {
                     LogToolMessage("Synchronizing system time with time servers...");
                     string result = SystemToolsManager.SyncTimeNow();
@@ -1515,9 +1559,10 @@ namespace TechInstaller
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "🌐 Time Zone Configuration",
+                "Time Zone Configuration",
                 "Open Time Zone selector to change system region (e.g. UTC+08:00 Manila).",
                 "Change Time Zone",
+                UiIcon.Network,
                 delegate {
                     LogToolMessage("Opening Time Zone selector dialog...");
                     SystemToolsManager.OpenTimeZoneSettings();
@@ -1526,9 +1571,10 @@ namespace TechInstaller
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "🔌 Network Adapters (ncpa.cpl)",
+                "Network Adapters (ncpa.cpl)",
                 "Open classic Network Connections control panel to inspect Ethernet and WiFi.",
                 "Open ncpa.cpl",
+                UiIcon.Network,
                 delegate {
                     LogToolMessage("Opening Network Connections panel...");
                     SystemToolsManager.OpenNetworkConnections();
@@ -1537,9 +1583,10 @@ namespace TechInstaller
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "🧹 Flush DNS Resolver Cache",
+                "Flush DNS Resolver Cache",
                 "Clears DNS resolver cache to fix internet loading issues and resolve hostnames.",
                 "Flush DNS Cache",
+                UiIcon.Clean,
                 delegate {
                     LogToolMessage("Flushing DNS resolver cache via ipconfig...");
                     string result = SystemToolsManager.FlushDns();
@@ -1549,9 +1596,10 @@ namespace TechInstaller
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "⚡ Set Cloudflare DNS (1.1.1.1)",
+                "Set Cloudflare DNS (1.1.1.1)",
                 "Configures high-speed, privacy-focused Cloudflare DNS (1.1.1.1 & 1.0.0.1).",
                 "Apply 1.1.1.1",
+                UiIcon.Speed,
                 delegate {
                     LogToolMessage("Configuring Cloudflare DNS servers...");
                     string res = SystemToolsManager.SetDnsServers("cloudflare");
@@ -1561,9 +1609,10 @@ namespace TechInstaller
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "⚡ Set Google DNS (8.8.8.8)",
+                "Set Google DNS (8.8.8.8)",
                 "Configures fast Google Public DNS servers (8.8.8.8 & 8.8.4.4).",
                 "Apply 8.8.8.8",
+                UiIcon.Speed,
                 delegate {
                     LogToolMessage("Configuring Google Public DNS servers...");
                     string res = SystemToolsManager.SetDnsServers("google");
@@ -1573,9 +1622,10 @@ namespace TechInstaller
             ));
 
             Panel lastSec4Card = CreateToolCard(
-                "🔄 Reset DNS to Automatic (DHCP)",
+                "Reset DNS to Automatic (DHCP)",
                 "Restores automatic router/ISP DNS server assignment on all active adapters.",
                 "Reset to DHCP",
+                UiIcon.Reload,
                 delegate {
                     LogToolMessage("Resetting DNS server configuration to DHCP...");
                     string res = SystemToolsManager.SetDnsServers("dhcp");
@@ -1587,14 +1637,15 @@ namespace TechInstaller
             _toolsFlowPanel.SetFlowBreak(lastSec4Card, true);
 
             // -------------------------------------------------------------
-            // SECTION 5: 💻 AUTOMATION & CUSTOMIZATION
+            // SECTION 5: AUTOMATION & CUSTOMIZATION
             // -------------------------------------------------------------
-            _toolsFlowPanel.Controls.Add(CreateSectionHeader("💻 AUTOMATION, SCRIPTS & CUSTOMIZATION", ColAccentPurple));
+            _toolsFlowPanel.Controls.Add(CreateSectionHeader("AUTOMATION, SCRIPTS & CUSTOMIZATION", UiIcon.CommandLine, ColAccentPurple));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "▶️ Run Custom Script (custom.ps1)",
+                "Run Custom Script (custom.ps1)",
                 "Auto-runs your custom PowerShell code in scripts\\custom.ps1 as Administrator.",
-                "▶️ Run custom.ps1",
+                "Run custom.ps1",
+                UiIcon.Play,
                 delegate {
                     LogToolMessage("Launching custom PowerShell script (scripts\\custom.ps1)...");
                     SystemToolsManager.OpenCustomPowerShellScript();
@@ -1603,9 +1654,10 @@ namespace TechInstaller
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "📝 Edit custom.ps1 Script",
+                "Edit custom.ps1 Script",
                 "Opens scripts\\custom.ps1 in Notepad so you can paste or edit your commands.",
-                "📝 Edit in Notepad",
+                "Edit in Notepad",
+                UiIcon.Edit,
                 delegate {
                     LogToolMessage("Opening scripts\\custom.ps1 in Notepad...");
                     SystemToolsManager.EditCustomPowerShellScript();
@@ -1614,9 +1666,10 @@ namespace TechInstaller
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "💻 Administrator PowerShell",
+                "Administrator PowerShell",
                 "Opens a clean elevated PowerShell console window ready for any commands.",
-                "💻 Open PowerShell",
+                "Open PowerShell",
+                UiIcon.CommandLine,
                 delegate {
                     LogToolMessage("Opening Administrator PowerShell console...");
                     SystemToolsManager.OpenElevatedPowerShell();
@@ -1625,9 +1678,10 @@ namespace TechInstaller
             ));
 
             _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "🖼️ Desktop Background & Themes",
+                "Desktop Background & Themes",
                 "Change desktop wallpaper, lock screen, colors, and Windows dark/light mode.",
                 "Change Background",
+                UiIcon.Theme,
                 delegate {
                     LogToolMessage("Opening Personalization & Wallpaper settings...");
                     SystemToolsManager.OpenDesktopBackgroundSettings();
@@ -1640,7 +1694,7 @@ namespace TechInstaller
             _panelTools.Controls.Add(toolsBanner);
         }
 
-        private Panel CreateSectionHeader(string title, Color accentColor)
+        private Panel CreateSectionHeader(string title, UiIcon icon, Color accentColor)
         {
             Panel header = new Panel();
             header.Width = 1100;
@@ -1653,21 +1707,29 @@ namespace TechInstaller
             bar.Dock = DockStyle.Left;
             bar.BackColor = accentColor;
 
+            PictureBox pic = new PictureBox();
+            pic.Size = new Size(18, 18);
+            pic.Location = new Point(14, 9);
+            pic.Image = UiIconHelper.GetIcon(icon, 16, accentColor);
+            pic.BackColor = Color.Transparent;
+
             Label lbl = new Label();
+            lbl.UseMnemonic = false;
             lbl.Text = title;
             lbl.Font = new Font("Segoe UI", 10.0F, FontStyle.Bold);
             lbl.ForeColor = accentColor;
-            lbl.Location = new Point(14, 8);
+            lbl.Location = new Point(38, 8);
             lbl.AutoSize = true;
 
             header.Controls.Add(lbl);
+            header.Controls.Add(pic);
             header.Controls.Add(bar);
 
             _toolsFlowPanel.SetFlowBreak(header, true);
             return header;
         }
 
-        private Panel CreateToolCard(string title, string description, string buttonText, EventHandler onClick, Color titleColor)
+        private Panel CreateToolCard(string title, string description, string buttonText, UiIcon btnIcon, EventHandler onClick, Color titleColor)
         {
             Panel card = new Panel();
             card.Width = 345;
@@ -1683,6 +1745,7 @@ namespace TechInstaller
             };
 
             Label lblT = new Label();
+            lblT.UseMnemonic = false;
             lblT.Text = title;
             lblT.Font = new Font("Segoe UI", 10.0F, FontStyle.Bold);
             lblT.ForeColor = titleColor;
@@ -1690,6 +1753,7 @@ namespace TechInstaller
             lblT.Location = new Point(12, 10);
 
             Label lblD = new Label();
+            lblD.UseMnemonic = false;
             lblD.Text = description;
             lblD.Font = new Font("Segoe UI", 8.5F);
             lblD.ForeColor = ColTextSecondary;
@@ -1697,8 +1761,8 @@ namespace TechInstaller
             lblD.Width = 320;
             lblD.Height = 44;
 
-            Button btn = CreatePillButton(buttonText, ColCardAlt, ColTextPrimary, 210, 32);
-            btn.Location = new Point(12, 90);
+            Button btn = CreatePillButton("  " + buttonText, btnIcon, ColCardAlt, ColTextPrimary, 320, 32);
+            btn.Location = new Point(12, 92);
             btn.Click += onClick;
 
             card.Controls.Add(lblT);
@@ -1736,7 +1800,7 @@ namespace TechInstaller
                 int idx = _gridCloudApps.Rows.Add();
                 DataGridViewRow row = _gridCloudApps.Rows[idx];
                 row.Tag = app;
-                row.Cells["CIcon"].Value = AppIconHelper.GetAppIcon(app.Name, app.Category, 24);
+                row.Cells["CIcon"].Value = AppIconHelper.GetAppIcon(app.Name, app.Name, app.Category, 36);
                 row.Cells["CName"].Value = app.Name;
                 row.Cells["CCat"].Value = app.Category;
                 row.Cells["CVer"].Value = app.Version;
@@ -1786,7 +1850,7 @@ namespace TechInstaller
         private void DisplayCloudAppDetails(CloudAppItem app)
         {
             if (app == null) return;
-            _picCloudIcon.Image = AppIconHelper.GetAppIcon(app.Name, app.Category, 48);
+            _picCloudIcon.Image = AppIconHelper.GetAppIcon(app.Name, app.Name, app.Category, 48);
             _lblCloudTitle.Text = app.Name;
             _lblCloudCategoryBadge.Text = app.Category;
             _lblCloudVersionBadge.Text = string.IsNullOrEmpty(app.Version) ? "v1.0" : ("v" + app.Version);
@@ -1824,6 +1888,7 @@ namespace TechInstaller
         private Button CreatePillButton(string text, Color bg, Color foreColor, int width, int height)
         {
             Button btn = new Button();
+            btn.UseMnemonic = false;
             btn.Text = text;
             btn.BackColor = bg;
             btn.ForeColor = foreColor;
@@ -1834,6 +1899,15 @@ namespace TechInstaller
             btn.Height = height;
             btn.Cursor = Cursors.Hand;
             btn.Font = new Font("Segoe UI", 9.0F, FontStyle.Bold);
+            return btn;
+        }
+
+        private Button CreatePillButton(string text, UiIcon icon, Color bg, Color foreColor, int width, int height)
+        {
+            Button btn = CreatePillButton(text, bg, foreColor, width, height);
+            btn.Image = UiIconHelper.GetIcon(icon, 14, foreColor);
+            btn.TextImageRelation = TextImageRelation.ImageBeforeText;
+            btn.ImageAlign = ContentAlignment.MiddleCenter;
             return btn;
         }
 
@@ -1872,7 +1946,7 @@ namespace TechInstaller
                 row.Tag = app;
 
                 row.Cells["ColCheck"].Value = app.IsSelected;
-                row.Cells["ColIcon"].Value = AppIconHelper.GetAppIcon(app.Id, app.Category, 24);
+                row.Cells["ColIcon"].Value = AppIconHelper.GetAppIcon(app.Id, app.Name, app.Category, 36);
                 row.Cells["ColName"].Value = app.Name;
                 row.Cells["ColCategory"].Value = app.Category;
                 row.Cells["ColSize"].Value = app.EstimatedSizeMB > 0 ? string.Format("{0} MB", app.EstimatedSizeMB) : "-";
@@ -2032,7 +2106,7 @@ namespace TechInstaller
             if (app == null) return;
             _selectedApp = app;
 
-            _picDetailsIcon.Image = AppIconHelper.GetAppIcon(app.Id, app.Category, 48);
+            _picDetailsIcon.Image = AppIconHelper.GetAppIcon(app.Id, app.Name, app.Category, 48);
             _lblDetailsTitle.Text = app.Name;
             _lblDetailsCategoryBadge.Text = app.Category;
 
@@ -2112,20 +2186,20 @@ namespace TechInstaller
             if (count == 0)
             {
                 _lblOverallStatus.Text = "Ready. Select software packages and click 'Start Installation'.";
-                _lblTimeEstimate.Text = "⏱️ Estimated time: ~0 min  •  Select items to begin";
+                _lblTimeEstimate.Text = "Estimated time: ~0 min  •  Select items to begin";
             }
             else if (totalMB == 0 && count > 0)
             {
                 _lblOverallStatus.Text = string.Format("Selected: {0} applications | ALL CACHED OFFLINE (0 MB download needed!)", count);
                 int estMinutes = Math.Max(1, (count * 15) / 60);
-                _lblTimeEstimate.Text = string.Format("⏱️ Estimated installation time: ~{0}-{1} min  •  High-speed offline installation", estMinutes, estMinutes + 2);
+                _lblTimeEstimate.Text = string.Format("Estimated installation time: ~{0}-{1} min  •  High-speed offline installation", estMinutes, estMinutes + 2);
             }
             else
             {
                 _lblOverallStatus.Text = string.Format("Selected: {0} applications ({1} offline, {2} online) | Est. Download: ~{3} MB",
                     count, cachedCount, count - cachedCount, totalMB);
                 int estMinutes = Math.Max(2, (count * 25) / 60);
-                _lblTimeEstimate.Text = string.Format("⏱️ Estimated total time: ~{0}-{1} min  •  Downloading {2} MB online", estMinutes, estMinutes + 3, totalMB);
+                _lblTimeEstimate.Text = string.Format("Estimated total time: ~{0}-{1} min  •  Downloading {2} MB online", estMinutes, estMinutes + 3, totalMB);
             }
         }
 
@@ -2200,7 +2274,8 @@ namespace TechInstaller
                 return;
             }
 
-            _btnAction.Text = "⏹️ CANCEL QUEUE";
+            _btnAction.Image = UiIconHelper.GetIcon(UiIcon.Cancel, 18, Color.White);
+            _btnAction.Text = "  CANCEL QUEUE";
             _btnAction.BackColor = ColAccentRed;
             _btnAction.Enabled = true;
 
@@ -2233,7 +2308,8 @@ namespace TechInstaller
 
             if (percent >= 100)
             {
-                _btnAction.Text = "▶ Start Installation  ∨";
+                _btnAction.Image = UiIconHelper.GetIcon(UiIcon.Play, 18, Color.White);
+                _btnAction.Text = "  Start Installation";
                 _btnAction.BackColor = ColAccentGreen;
                 _btnAction.Enabled = true;
                 ConfigManager.RefreshCacheStatus(_allApps);
