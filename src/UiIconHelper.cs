@@ -55,7 +55,16 @@ namespace TechInstaller
         Chip,
         Key,
         CloudUpload,
-        Power
+        Power,
+        HeartPulse,
+        AlertCircle,
+        Battery,
+        WifiOff,
+        Wifi,
+        RefreshCw,
+        Copy,
+        Export,
+        Computer
     }
 
     public static class UiIconHelper
@@ -129,6 +138,15 @@ namespace TechInstaller
                 case UiIcon.Key: return "\uE8D7";               // Key / Permissions
                 case UiIcon.CloudUpload: return "\uE898";       // Cloud Upload
                 case UiIcon.Power: return "\uE7E8";             // Power
+                case UiIcon.HeartPulse: return "\uEC02";        // Health / Heart
+                case UiIcon.AlertCircle: return "\uE7BA";       // Warning / Error
+                case UiIcon.Battery: return "\uE83F";           // Battery
+                case UiIcon.WifiOff: return "\uEB5E";           // Network Offline
+                case UiIcon.Wifi: return "\uE701";              // Network Online
+                case UiIcon.RefreshCw: return "\uE72C";         // Refresh
+                case UiIcon.Copy: return "\uE8C8";              // Copy
+                case UiIcon.Export: return "\uEDE1";            // Save / Export
+                case UiIcon.Computer: return "\uE7F8";          // Device / PC
                 default: return "\uE71D";
             }
         }

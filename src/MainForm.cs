@@ -111,8 +111,22 @@ namespace TechInstaller
         private TableLayoutPanel _cloudMetaTable;
 
         // --- System Tools Controls ---
+        private class ToolCardItem
+        {
+            public Panel CardPanel;
+            public string Category;
+            public string Title;
+            public string Description;
+            public string Keywords;
+        }
+
+        private List<ToolCardItem> _allToolCards;
+        private string _activeToolCategory = "All";
+        private TextBox _txtToolsSearch;
+        private Dictionary<string, Button> _categoryFilterButtons;
         private FlowLayoutPanel _toolsFlowPanel;
         private RichTextBox _rtbToolsLog;
+        private Label _lblToolsCount;
 
         // Modern Slate & Neon Blue Theme Colors
         private readonly Color ColBg = Color.FromArgb(8, 14, 30);            // Deep navy / black #080E1E
@@ -1248,43 +1262,136 @@ namespace TechInstaller
             _panelTools = new Panel();
             _panelTools.Dock = DockStyle.Fill;
             _panelTools.BackColor = ColBg;
+            _allToolCards = new List<ToolCardItem>();
+            _categoryFilterButtons = new Dictionary<string, Button>(StringComparer.OrdinalIgnoreCase);
 
-            // Header banner
-            Panel toolsBanner = new Panel();
-            toolsBanner.Dock = DockStyle.Top;
-            toolsBanner.Height = 48;
-            toolsBanner.BackColor = ColCardAlt;
-            toolsBanner.Padding = new Padding(18, 12, 18, 10);
-            toolsBanner.Paint += delegate(object s, PaintEventArgs pe) {
+            // 1. Top Header Container (Title/Search Bar & Category Pills)
+            Panel toolsHeaderContainer = new Panel();
+            toolsHeaderContainer.Dock = DockStyle.Top;
+            toolsHeaderContainer.Height = 104;
+            toolsHeaderContainer.BackColor = ColCard;
+            toolsHeaderContainer.Padding = new Padding(0);
+            toolsHeaderContainer.Paint += delegate(object s, PaintEventArgs pe) {
                 using (Pen p = new Pen(ColBorder, 1))
                 {
-                    pe.Graphics.DrawLine(p, 0, toolsBanner.Height - 1, toolsBanner.Width, toolsBanner.Height - 1);
+                    pe.Graphics.DrawLine(p, 0, toolsHeaderContainer.Height - 1, toolsHeaderContainer.Width, toolsHeaderContainer.Height - 1);
                 }
             };
 
+            // Top Row: Title, Subtitle, and Search Box
+            Panel toolsTopRow = new Panel();
+            toolsTopRow.Dock = DockStyle.Top;
+            toolsTopRow.Height = 56;
+            toolsTopRow.BackColor = ColCard;
+            toolsTopRow.Padding = new Padding(16, 8, 16, 6);
+
             PictureBox picToolsBanner = new PictureBox();
-            picToolsBanner.Size = new Size(18, 18);
-            picToolsBanner.Location = new Point(16, 14);
-            picToolsBanner.Image = UiIconHelper.GetIcon(UiIcon.Wrench, 16, ColAccentBlue);
+            picToolsBanner.Size = new Size(20, 20);
+            picToolsBanner.Location = new Point(16, 17);
+            picToolsBanner.Image = UiIconHelper.GetIcon(UiIcon.Wrench, 18, ColAccentBlue);
             picToolsBanner.BackColor = Color.Transparent;
 
             Label lblToolsBanner = new Label();
-            lblToolsBanner.Text = "Windows System Shortcuts, Optimization, and Configuration Utilities";
-            lblToolsBanner.Font = new Font("Segoe UI", 10.0F, FontStyle.Bold);
-            lblToolsBanner.ForeColor = ColAccentBlue;
+            lblToolsBanner.Text = "SYSTEM TOOLS, DIAGNOSTICS & TWEAKS";
+            lblToolsBanner.Font = new Font("Segoe UI", 10.5F, FontStyle.Bold);
+            lblToolsBanner.ForeColor = ColTextPrimary;
             lblToolsBanner.AutoSize = true;
-            lblToolsBanner.Location = new Point(40, 13);
+            lblToolsBanner.Location = new Point(42, 10);
             lblToolsBanner.UseMnemonic = false;
 
-            toolsBanner.Controls.Add(picToolsBanner);
-            toolsBanner.Controls.Add(lblToolsBanner);
+            Label lblToolsSubtitle = new Label();
+            lblToolsSubtitle.Text = "Hardware checks, network offline/online toggles, system health, error scans, and 1-click Windows optimizations";
+            lblToolsSubtitle.Font = new Font("Segoe UI", 8.25F);
+            lblToolsSubtitle.ForeColor = ColTextSecondary;
+            lblToolsSubtitle.AutoSize = true;
+            lblToolsSubtitle.Location = new Point(43, 31);
+            lblToolsSubtitle.UseMnemonic = false;
 
-            // Output Terminal at bottom of Tools Tab
+            toolsTopRow.Controls.Add(picToolsBanner);
+            toolsTopRow.Controls.Add(lblToolsBanner);
+            toolsTopRow.Controls.Add(lblToolsSubtitle);
+
+            // Search Container on the right of Top Row
+            Panel searchContainer = new Panel();
+            searchContainer.Size = new Size(330, 36);
+            searchContainer.Location = new Point(toolsTopRow.Width - 346, 10);
+            searchContainer.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            searchContainer.BackColor = ColCardAlt;
+            searchContainer.Padding = new Padding(8, 7, 8, 7);
+            searchContainer.Paint += delegate(object s, PaintEventArgs pe) {
+                using (Pen p = new Pen(ColBorder, 1))
+                {
+                    pe.Graphics.DrawRectangle(p, 0, 0, searchContainer.Width - 1, searchContainer.Height - 1);
+                }
+            };
+
+            PictureBox picSearch = new PictureBox();
+            picSearch.Size = new Size(16, 16);
+            picSearch.Location = new Point(8, 10);
+            picSearch.Image = UiIconHelper.GetIcon(UiIcon.Search, 14, ColAccentBlue);
+            picSearch.BackColor = Color.Transparent;
+
+            _txtToolsSearch = new TextBox();
+            _txtToolsSearch.Location = new Point(30, 8);
+            _txtToolsSearch.Size = new Size(290, 20);
+            _txtToolsSearch.BackColor = ColCardAlt;
+            _txtToolsSearch.ForeColor = ColTextPrimary;
+            _txtToolsSearch.Font = new Font("Segoe UI", 9.5F);
+            _txtToolsSearch.BorderStyle = BorderStyle.None;
+            _txtToolsSearch.TextChanged += delegate { FilterToolCards(); };
+            _txtToolsSearch.HandleCreated += delegate {
+                SetCueBanner(_txtToolsSearch, "Search tools (e.g. rename, wifi, ping, error)...");
+            };
+            if (_txtToolsSearch.IsHandleCreated)
+            {
+                SetCueBanner(_txtToolsSearch, "Search tools (e.g. rename, wifi, ping, error)...");
+            }
+
+            searchContainer.Controls.Add(_txtToolsSearch);
+            searchContainer.Controls.Add(picSearch);
+            toolsTopRow.Controls.Add(searchContainer);
+
+            // Bottom Row of Header: Category Filter Pills + Count Label
+            Panel toolsFilterRow = new Panel();
+            toolsFilterRow.Dock = DockStyle.Bottom;
+            toolsFilterRow.Height = 46;
+            toolsFilterRow.BackColor = ColCard;
+            toolsFilterRow.Padding = new Padding(14, 4, 16, 6);
+
+            FlowLayoutPanel filterPills = new FlowLayoutPanel();
+            filterPills.Dock = DockStyle.Fill;
+            filterPills.WrapContents = false;
+            filterPills.AutoScroll = false;
+            filterPills.BackColor = Color.Transparent;
+
+            CreateCategoryPill(filterPills, "All", "All Tools");
+            CreateCategoryPill(filterPills, "Diagnostics", "Diagnostics & Health");
+            CreateCategoryPill(filterPills, "Network", "Network & Internet");
+            CreateCategoryPill(filterPills, "Performance", "Performance & Tweaks");
+            CreateCategoryPill(filterPills, "Hardware", "Hardware & Devices");
+            CreateCategoryPill(filterPills, "Admin", "System Admin");
+            CreateCategoryPill(filterPills, "Automation", "Automation & Scripts");
+
+            _lblToolsCount = new Label();
+            _lblToolsCount.Dock = DockStyle.Right;
+            _lblToolsCount.Width = 180;
+            _lblToolsCount.TextAlign = ContentAlignment.MiddleRight;
+            _lblToolsCount.ForeColor = ColTextMuted;
+            _lblToolsCount.Font = new Font("Segoe UI", 8.5F);
+            _lblToolsCount.Text = "Showing all tools";
+
+            toolsFilterRow.Controls.Add(filterPills);
+            toolsFilterRow.Controls.Add(_lblToolsCount);
+
+            toolsHeaderContainer.Controls.Add(toolsFilterRow);
+            toolsHeaderContainer.Controls.Add(toolsTopRow);
+
+            // 2. Output Terminal at bottom of Tools Tab
             Panel toolsLogWrap = new Panel();
             toolsLogWrap.Dock = DockStyle.Bottom;
-            toolsLogWrap.Height = 170;
+            toolsLogWrap.Height = 180;
             toolsLogWrap.BackColor = ColCard;
-            toolsLogWrap.Padding = new Padding(14, 6, 14, 8);
+            toolsLogWrap.Padding = new Padding(16, 6, 16, 8);
             toolsLogWrap.Paint += delegate(object s, PaintEventArgs pe) {
                 using (Pen p = new Pen(ColBorder, 1))
                 {
@@ -1292,451 +1399,197 @@ namespace TechInstaller
                 }
             };
 
+            // Console Header Bar
+            Panel logHeader = new Panel();
+            logHeader.Dock = DockStyle.Top;
+            logHeader.Height = 28;
+            logHeader.BackColor = Color.Transparent;
+
+            PictureBox picLogDot = new PictureBox();
+            picLogDot.Size = new Size(14, 14);
+            picLogDot.Location = new Point(2, 6);
+            picLogDot.Image = UiIconHelper.GetIcon(UiIcon.CommandLine, 12, ColAccentGreen);
+            picLogDot.BackColor = Color.Transparent;
+
             Label lblToolsLogTitle = new Label();
-            lblToolsLogTitle.Text = "COMMAND EXECUTION OUTPUT:";
-            lblToolsLogTitle.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            lblToolsLogTitle.UseMnemonic = false;
+            lblToolsLogTitle.Text = "COMMAND EXECUTION OUTPUT & DIAGNOSTIC LOG";
+            lblToolsLogTitle.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold);
             lblToolsLogTitle.ForeColor = ColTextSecondary;
-            lblToolsLogTitle.Location = new Point(14, 6);
+            lblToolsLogTitle.Location = new Point(20, 5);
             lblToolsLogTitle.AutoSize = true;
 
+            FlowLayoutPanel logActions = new FlowLayoutPanel();
+            logActions.Dock = DockStyle.Right;
+            logActions.Width = 330;
+            logActions.Height = 28;
+            logActions.FlowDirection = FlowDirection.RightToLeft;
+            logActions.BackColor = Color.Transparent;
+
+            Button btnClearToolsLog = CreatePillButton(" Clear", UiIcon.Trash, ColCardAlt, ColTextSecondary, 72, 24);
+            btnClearToolsLog.Click += delegate {
+                _rtbToolsLog.Clear();
+                LogToolMessage("Console cleared.");
+            };
+
+            Button btnExportToolsLog = CreatePillButton(" Export to Desktop", UiIcon.Export, ColCardAlt, ColTextPrimary, 138, 24);
+            btnExportToolsLog.Click += delegate {
+                try
+                {
+                    string desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+                    string fileName = string.Format("TechInstaller_ToolsLog_{0:yyyyMMdd_HHmmss}.txt", DateTime.Now);
+                    string filePath = Path.Combine(desktop, fileName);
+                    File.WriteAllText(filePath, _rtbToolsLog.Text);
+                    LogToolMessage("Log exported successfully to: " + filePath);
+                }
+                catch (Exception ex)
+                {
+                    LogToolMessage("Failed to export log: " + ex.Message);
+                }
+            };
+
+            Button btnCopyToolsLog = CreatePillButton(" Copy Log", UiIcon.Copy, ColCardAlt, ColTextPrimary, 94, 24);
+            btnCopyToolsLog.Click += delegate {
+                if (!string.IsNullOrEmpty(_rtbToolsLog.Text))
+                {
+                    Clipboard.SetText(_rtbToolsLog.Text);
+                    LogToolMessage("Tool console log copied to clipboard.");
+                }
+            };
+
+            logActions.Controls.Add(btnClearToolsLog);
+            logActions.Controls.Add(btnExportToolsLog);
+            logActions.Controls.Add(btnCopyToolsLog);
+
+            logHeader.Controls.Add(picLogDot);
+            logHeader.Controls.Add(lblToolsLogTitle);
+            logHeader.Controls.Add(logActions);
+
             _rtbToolsLog = new RichTextBox();
-            _rtbToolsLog.Location = new Point(14, 26);
-            _rtbToolsLog.Width = toolsLogWrap.Width - 28;
-            _rtbToolsLog.Height = 135;
-            _rtbToolsLog.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            _rtbToolsLog.Dock = DockStyle.Fill;
             _rtbToolsLog.BackColor = Color.FromArgb(6, 10, 20);
             _rtbToolsLog.ForeColor = Color.FromArgb(226, 232, 240);
             _rtbToolsLog.Font = new Font("Consolas", 9.0F);
             _rtbToolsLog.BorderStyle = BorderStyle.None;
             _rtbToolsLog.ReadOnly = true;
 
-            toolsLogWrap.Controls.Add(lblToolsLogTitle);
             toolsLogWrap.Controls.Add(_rtbToolsLog);
+            toolsLogWrap.Controls.Add(logHeader);
 
-            // Flow Panel for tool cards
+            // 3. Flow Panel for tool cards
             _toolsFlowPanel = new FlowLayoutPanel();
             _toolsFlowPanel.Dock = DockStyle.Fill;
             _toolsFlowPanel.AutoScroll = true;
-            _toolsFlowPanel.Padding = new Padding(16);
+            _toolsFlowPanel.Padding = new Padding(12, 10, 12, 12);
             _toolsFlowPanel.BackColor = ColBg;
 
-            // -------------------------------------------------------------
-            // SECTION 1: PERFORMANCE & 1-CLICK TWEAKS
-            // -------------------------------------------------------------
-            _toolsFlowPanel.Controls.Add(CreateSectionHeader("PERFORMANCE & 1-CLICK WINDOWS TWEAKS", UiIcon.Speed, ColAccentAmber));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "Ultimate Performance Plan",
-                "Enables Windows Ultimate Performance plan to prevent CPU throttling and maximize FPS.",
-                "Activate Ultimate Plan",
-                UiIcon.Lightning,
-                delegate {
-                    LogToolMessage("Activating Ultimate Performance Power Plan...");
-                    string res = SystemToolsManager.EnableUltimatePerformance();
-                    LogToolMessage(res);
-                },
-                ColAccentAmber
-            ));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "Show Extensions & Hidden",
-                "Unhides file extensions (.exe, .zip, .iso) and hidden files in File Explorer.",
-                "Show Extensions & Hidden",
-                UiIcon.Settings,
-                delegate {
-                    LogToolMessage("Updating Explorer folder view settings...");
-                    string res = SystemToolsManager.ToggleShowFileExtensions();
-                    LogToolMessage(res);
-                },
-                ColAccentAmber
-            ));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "Disable Hibernation (Save 8-16 GB)",
-                "Deletes hiberfil.sys and disables hibernation to immediately reclaim SSD storage.",
-                "Disable Hibernation",
-                UiIcon.Power,
-                delegate {
-                    LogToolMessage("Disabling Windows Hibernation...");
-                    string res = SystemToolsManager.DisableHibernation();
-                    LogToolMessage(res);
-                },
-                ColAccentAmber
-            ));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "1-Click Temp & Junk Cleaner",
-                "Safely cleans %temp%, Windows Temp, and Prefetch junk cache to free up disk space.",
-                "Clean Temp Files",
-                UiIcon.Clean,
-                delegate {
-                    LogToolMessage("Cleaning temporary and cache junk files...");
-                    string res = SystemToolsManager.CleanJunkAndTempFiles();
-                    LogToolMessage(res);
-                },
-                ColAccentAmber
-            ));
-
-            Panel lastSec1Card = CreateToolCard(
-                "System File Repair (SFC & DISM)",
-                "Scans and repairs corrupted Windows system files and component store.",
-                "Run SFC & DISM Scan",
-                UiIcon.Shield,
-                delegate {
-                    LogToolMessage("Launching elevated System File Checker & DISM repair...");
-                    SystemToolsManager.RunSystemFileCheck();
-                },
-                ColAccentAmber
-            );
-            _toolsFlowPanel.Controls.Add(lastSec1Card);
-            _toolsFlowPanel.SetFlowBreak(lastSec1Card, true);
-
-            // -------------------------------------------------------------
-            // SECTION 2: HARDWARE & DIAGNOSTICS
-            // -------------------------------------------------------------
-            _toolsFlowPanel.Controls.Add(CreateSectionHeader("HARDWARE, DRIVERS & DIAGNOSTICS", UiIcon.Chip, ColAccentBlue));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "Device Manager",
-                "Check hardware devices, installed components, and missing drivers.",
-                "Open devmgmt.msc",
-                UiIcon.Settings,
-                delegate {
-                    LogToolMessage("Launching Windows Device Manager...");
-                    SystemToolsManager.OpenDeviceManager();
-                },
-                ColAccentBlue
-            ));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "IObit Driver Booster",
-                "Extract and run Driver Booster to automatically scan & install missing hardware drivers.",
-                "Launch Driver Booster",
-                UiIcon.Lightning,
-                delegate {
-                    LogToolMessage("Checking IObit Driver Booster Portable...");
-                    string res = SystemToolsManager.LaunchOrDeployDriverBooster();
-                    LogToolMessage(res);
-                },
-                ColAccentBlue
-            ));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "CrystalDiskInfo (Portable)",
-                "Inspect SSD/HDD health, remaining life percentage, temperature, and SMART status.",
-                "Launch CrystalDiskInfo",
-                UiIcon.HardDrive,
-                delegate {
-                    LogToolMessage("Checking CrystalDiskInfo Portable...");
-                    string res = SystemToolsManager.LaunchCrystalDiskInfo();
-                    LogToolMessage(res);
-                },
-                ColAccentBlue
-            ));
-
-            Panel lastSec2Card = CreateToolCard(
-                "CPU-Z (Portable)",
-                "View detailed CPU clock speeds, Motherboard model, and Dual-Channel RAM specs.",
-                "Launch CPU-Z",
-                UiIcon.Chip,
-                delegate {
-                    LogToolMessage("Checking CPU-Z Portable...");
-                    string res = SystemToolsManager.LaunchCpuZ();
-                    LogToolMessage(res);
-                },
-                ColAccentBlue
-            );
-            _toolsFlowPanel.Controls.Add(lastSec2Card);
-            _toolsFlowPanel.SetFlowBreak(lastSec2Card, true);
-
-            // -------------------------------------------------------------
-            // SECTION 3: WINDOWS ADMINISTRATION
-            // -------------------------------------------------------------
-            _toolsFlowPanel.Controls.Add(CreateSectionHeader("WINDOWS SYSTEM ADMINISTRATION", UiIcon.Wrench, ColAccentGreen));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "Disk Management (diskmgmt.msc)",
-                "Partition drives, initialize new SSD/HDD, shrink/extend volumes, and create Drive D:.",
-                "Open diskmgmt.msc",
-                UiIcon.HardDrive,
-                delegate {
-                    LogToolMessage("Opening Windows Disk Management console...");
-                    SystemToolsManager.OpenDiskManagement();
-                },
-                ColAccentGreen
-            ));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "System Properties (sysdm.cpl)",
-                "Rename PC, change Workgroup, and configure Pagefile / Virtual Memory.",
-                "Open sysdm.cpl",
-                UiIcon.Document,
-                delegate {
-                    LogToolMessage("Opening System Properties (Advanced)...");
-                    SystemToolsManager.OpenSystemPropertiesAdvanced();
-                },
-                ColAccentGreen
-            ));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "Task Manager & Startup Apps",
-                "Inspect real-time CPU/RAM usage, kill hanging processes, and manage startup programs.",
-                "Open Task Manager",
-                UiIcon.Speed,
-                delegate {
-                    LogToolMessage("Launching Windows Task Manager...");
-                    SystemToolsManager.OpenTaskManager();
-                },
-                ColAccentGreen
-            ));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "Windows Services (services.msc)",
-                "Manage background Windows services, start/stop services, and set startup types.",
-                "Open services.msc",
-                UiIcon.Settings,
-                delegate {
-                    LogToolMessage("Opening Windows Services console...");
-                    SystemToolsManager.OpenServicesManager();
-                },
-                ColAccentGreen
-            ));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "Windows Defender Security",
-                "Open Windows Security settings, Virus & Threat Protection, and file exclusions.",
-                "Open Windows Security",
-                UiIcon.Shield,
-                delegate {
-                    LogToolMessage("Opening Windows Security...");
-                    SystemToolsManager.OpenWindowsSecurity();
-                },
-                ColAccentGreen
-            ));
-
-            Panel lastSec3Card = CreateToolCard(
-                "Windows Activation & License",
-                "Check genuine activation status or enter product key in Windows Settings.",
-                "Open Activation",
-                UiIcon.Key,
-                delegate {
-                    LogToolMessage("Opening Windows Activation & Licensing panel...");
-                    SystemToolsManager.OpenActivationSettings();
-                },
-                ColAccentGreen
-            );
-            _toolsFlowPanel.Controls.Add(lastSec3Card);
-            _toolsFlowPanel.SetFlowBreak(lastSec3Card, true);
-
-            // -------------------------------------------------------------
-            // SECTION 4: NETWORK & CONNECTIVITY
-            // -------------------------------------------------------------
-            _toolsFlowPanel.Controls.Add(CreateSectionHeader("NETWORK, TIME & DNS CONFIGURATION", UiIcon.Network, ColAccentCyan));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "Date & Time Settings",
-                "Open Windows Settings to configure clock, automatic time, and calendar.",
-                "Open Time Settings",
-                UiIcon.ClockCircle,
-                delegate {
-                    LogToolMessage("Opening Windows Date & Time settings...");
-                    SystemToolsManager.OpenDateAndTimeSettings();
-                },
-                ColAccentCyan
-            ));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "Sync Internet Time Now",
-                "Force resynchronization of system clock with Windows Internet Time servers.",
-                "Sync Clock Now",
-                UiIcon.Reload,
-                delegate {
-                    LogToolMessage("Synchronizing system time with time servers...");
-                    string result = SystemToolsManager.SyncTimeNow();
-                    LogToolMessage(result);
-                },
-                ColAccentCyan
-            ));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "Time Zone Configuration",
-                "Open Time Zone selector to change system region (e.g. UTC+08:00 Manila).",
-                "Change Time Zone",
-                UiIcon.Network,
-                delegate {
-                    LogToolMessage("Opening Time Zone selector dialog...");
-                    SystemToolsManager.OpenTimeZoneSettings();
-                },
-                ColAccentCyan
-            ));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "Network Adapters (ncpa.cpl)",
-                "Open classic Network Connections control panel to inspect Ethernet and WiFi.",
-                "Open ncpa.cpl",
-                UiIcon.Network,
-                delegate {
-                    LogToolMessage("Opening Network Connections panel...");
-                    SystemToolsManager.OpenNetworkConnections();
-                },
-                ColAccentCyan
-            ));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "Flush DNS Resolver Cache",
-                "Clears DNS resolver cache to fix internet loading issues and resolve hostnames.",
-                "Flush DNS Cache",
-                UiIcon.Clean,
-                delegate {
-                    LogToolMessage("Flushing DNS resolver cache via ipconfig...");
-                    string result = SystemToolsManager.FlushDns();
-                    LogToolMessage(result);
-                },
-                ColAccentCyan
-            ));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "Set Cloudflare DNS (1.1.1.1)",
-                "Configures high-speed, privacy-focused Cloudflare DNS (1.1.1.1 & 1.0.0.1).",
-                "Apply 1.1.1.1",
-                UiIcon.Speed,
-                delegate {
-                    LogToolMessage("Configuring Cloudflare DNS servers...");
-                    string res = SystemToolsManager.SetDnsServers("cloudflare");
-                    LogToolMessage(res);
-                },
-                ColAccentCyan
-            ));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "Set Google DNS (8.8.8.8)",
-                "Configures fast Google Public DNS servers (8.8.8.8 & 8.8.4.4).",
-                "Apply 8.8.8.8",
-                UiIcon.Speed,
-                delegate {
-                    LogToolMessage("Configuring Google Public DNS servers...");
-                    string res = SystemToolsManager.SetDnsServers("google");
-                    LogToolMessage(res);
-                },
-                ColAccentCyan
-            ));
-
-            Panel lastSec4Card = CreateToolCard(
-                "Reset DNS to Automatic (DHCP)",
-                "Restores automatic router/ISP DNS server assignment on all active adapters.",
-                "Reset to DHCP",
-                UiIcon.Reload,
-                delegate {
-                    LogToolMessage("Resetting DNS server configuration to DHCP...");
-                    string res = SystemToolsManager.SetDnsServers("dhcp");
-                    LogToolMessage(res);
-                },
-                ColAccentCyan
-            );
-            _toolsFlowPanel.Controls.Add(lastSec4Card);
-            _toolsFlowPanel.SetFlowBreak(lastSec4Card, true);
-
-            // -------------------------------------------------------------
-            // SECTION 5: AUTOMATION & CUSTOMIZATION
-            // -------------------------------------------------------------
-            _toolsFlowPanel.Controls.Add(CreateSectionHeader("AUTOMATION, SCRIPTS & CUSTOMIZATION", UiIcon.CommandLine, ColAccentPurple));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "Run Custom Script (custom.ps1)",
-                "Auto-runs your custom PowerShell code in scripts\\custom.ps1 as Administrator.",
-                "Run custom.ps1",
-                UiIcon.Play,
-                delegate {
-                    LogToolMessage("Launching custom PowerShell script (scripts\\custom.ps1)...");
-                    SystemToolsManager.OpenCustomPowerShellScript();
-                },
-                ColAccentPurple
-            ));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "Edit custom.ps1 Script",
-                "Opens scripts\\custom.ps1 in Notepad so you can paste or edit your commands.",
-                "Edit in Notepad",
-                UiIcon.Edit,
-                delegate {
-                    LogToolMessage("Opening scripts\\custom.ps1 in Notepad...");
-                    SystemToolsManager.EditCustomPowerShellScript();
-                },
-                ColAccentPurple
-            ));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "Administrator PowerShell",
-                "Opens a clean elevated PowerShell console window ready for any commands.",
-                "Open PowerShell",
-                UiIcon.CommandLine,
-                delegate {
-                    LogToolMessage("Opening Administrator PowerShell console...");
-                    SystemToolsManager.OpenElevatedPowerShell();
-                },
-                ColAccentPurple
-            ));
-
-            _toolsFlowPanel.Controls.Add(CreateToolCard(
-                "Desktop Background & Themes",
-                "Change desktop wallpaper, lock screen, colors, and Windows dark/light mode.",
-                "Change Background",
-                UiIcon.Theme,
-                delegate {
-                    LogToolMessage("Opening Personalization & Wallpaper settings...");
-                    SystemToolsManager.OpenDesktopBackgroundSettings();
-                },
-                ColAccentPurple
-            ));
+            // Populate all 37 technician tool cards
+            PopulateSystemTools();
 
             _panelTools.Controls.Add(_toolsFlowPanel);
             _panelTools.Controls.Add(toolsLogWrap);
-            _panelTools.Controls.Add(toolsBanner);
+            _panelTools.Controls.Add(toolsHeaderContainer);
+
+            toolsHeaderContainer.SendToBack();
+            toolsLogWrap.SendToBack();
+            _toolsFlowPanel.BringToFront();
+
+            SelectCategoryFilter("All");
         }
 
-        private Panel CreateSectionHeader(string title, UiIcon icon, Color accentColor)
+        private void CreateCategoryPill(FlowLayoutPanel parent, string key, string label)
         {
-            Panel header = new Panel();
-            header.Width = 1100;
-            header.Height = 36;
-            header.Margin = new Padding(10, 16, 10, 6);
-            header.BackColor = Color.FromArgb(16, 26, 48);
+            Button btn = new Button();
+            btn.UseMnemonic = false;
+            btn.Text = label;
+            btn.Tag = key;
+            btn.Height = 28;
+            btn.AutoSize = true;
+            btn.Padding = new Padding(10, 0, 10, 0);
+            btn.Margin = new Padding(3, 3, 3, 3);
+            btn.FlatStyle = FlatStyle.Flat;
+            btn.FlatAppearance.BorderSize = 1;
+            btn.FlatAppearance.BorderColor = ColCardBorder;
+            btn.Cursor = Cursors.Hand;
+            btn.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            btn.BackColor = ColCardAlt;
+            btn.ForeColor = ColTextSecondary;
 
-            Panel bar = new Panel();
-            bar.Width = 5;
-            bar.Dock = DockStyle.Left;
-            bar.BackColor = accentColor;
+            btn.Click += delegate {
+                SelectCategoryFilter(key);
+            };
 
-            PictureBox pic = new PictureBox();
-            pic.Size = new Size(18, 18);
-            pic.Location = new Point(14, 9);
-            pic.Image = UiIconHelper.GetIcon(icon, 16, accentColor);
-            pic.BackColor = Color.Transparent;
-
-            Label lbl = new Label();
-            lbl.UseMnemonic = false;
-            lbl.Text = title;
-            lbl.Font = new Font("Segoe UI", 10.0F, FontStyle.Bold);
-            lbl.ForeColor = accentColor;
-            lbl.Location = new Point(38, 8);
-            lbl.AutoSize = true;
-
-            header.Controls.Add(lbl);
-            header.Controls.Add(pic);
-            header.Controls.Add(bar);
-
-            _toolsFlowPanel.SetFlowBreak(header, true);
-            return header;
+            _categoryFilterButtons[key] = btn;
+            parent.Controls.Add(btn);
         }
 
-        private Panel CreateToolCard(string title, string description, string buttonText, UiIcon btnIcon, EventHandler onClick, Color titleColor)
+        private void SelectCategoryFilter(string categoryKey)
+        {
+            _activeToolCategory = categoryKey;
+            foreach (KeyValuePair<string, Button> kvp in _categoryFilterButtons)
+            {
+                if (string.Equals(kvp.Key, categoryKey, StringComparison.OrdinalIgnoreCase))
+                {
+                    kvp.Value.BackColor = ColAccentCyan;
+                    kvp.Value.ForeColor = Color.White;
+                    kvp.Value.FlatAppearance.BorderColor = ColAccentCyan;
+                }
+                else
+                {
+                    kvp.Value.BackColor = ColCardAlt;
+                    kvp.Value.ForeColor = ColTextSecondary;
+                    kvp.Value.FlatAppearance.BorderColor = ColCardBorder;
+                }
+            }
+            FilterToolCards();
+        }
+
+        private void FilterToolCards()
+        {
+            if (_toolsFlowPanel == null || _allToolCards == null) return;
+
+            string query = (_txtToolsSearch != null) ? _txtToolsSearch.Text.Trim().ToLowerInvariant() : "";
+            int visibleCount = 0;
+
+            _toolsFlowPanel.SuspendLayout();
+            for (int i = 0; i < _allToolCards.Count; i++)
+            {
+                ToolCardItem item = _allToolCards[i];
+                bool matchesCat = (_activeToolCategory == "All" || string.Equals(item.Category, _activeToolCategory, StringComparison.OrdinalIgnoreCase));
+                bool matchesQuery = string.IsNullOrEmpty(query) ||
+                                    item.Title.ToLowerInvariant().Contains(query) ||
+                                    item.Description.ToLowerInvariant().Contains(query) ||
+                                    item.Keywords.ToLowerInvariant().Contains(query);
+
+                bool show = matchesCat && matchesQuery;
+                item.CardPanel.Visible = show;
+                if (show) visibleCount++;
+            }
+            _toolsFlowPanel.ResumeLayout();
+
+            if (_lblToolsCount != null)
+            {
+                _lblToolsCount.Text = string.Format("Showing {0} of {1} tools", visibleCount, _allToolCards.Count);
+            }
+        }
+
+        private ToolCardItem AddToolCard(
+            string categoryKey,
+            string categoryBadge,
+            string title,
+            string description,
+            string buttonText,
+            UiIcon icon,
+            EventHandler onClick,
+            Color accentColor,
+            string keywords)
         {
             Panel card = new Panel();
-            card.Width = 345;
-            card.Height = 138;
+            card.Width = 368;
+            card.Height = 152;
             card.BackColor = ColCard;
-            card.Margin = new Padding(10);
-            card.Padding = new Padding(14);
+            card.Margin = new Padding(8);
+            card.Padding = new Padding(12, 10, 12, 10);
             card.Paint += delegate(object s, PaintEventArgs pe) {
                 using (Pen p = new Pen(ColBorder, 1))
                 {
@@ -1744,32 +1597,712 @@ namespace TechInstaller
                 }
             };
 
+            // Header row of the card: Icon + Title + Category Badge
+            PictureBox pic = new PictureBox();
+            pic.Size = new Size(16, 16);
+            pic.Location = new Point(12, 12);
+            pic.Image = UiIconHelper.GetIcon(icon, 16, accentColor);
+            pic.BackColor = Color.Transparent;
+
             Label lblT = new Label();
             lblT.UseMnemonic = false;
             lblT.Text = title;
-            lblT.Font = new Font("Segoe UI", 10.0F, FontStyle.Bold);
-            lblT.ForeColor = titleColor;
+            lblT.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            lblT.ForeColor = ColTextPrimary;
             lblT.AutoSize = true;
-            lblT.Location = new Point(12, 10);
+            lblT.Location = new Point(34, 10);
 
+            Label lblCat = new Label();
+            lblCat.UseMnemonic = false;
+            lblCat.Text = categoryBadge.ToUpperInvariant();
+            lblCat.Font = new Font("Segoe UI", 7.0F, FontStyle.Bold);
+            lblCat.ForeColor = accentColor;
+            lblCat.BackColor = Color.FromArgb(16, 26, 48);
+            lblCat.TextAlign = ContentAlignment.MiddleCenter;
+            lblCat.Size = new Size(94, 18);
+            lblCat.Location = new Point(card.Width - 106, 10);
+            lblCat.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+
+            // Description text
             Label lblD = new Label();
             lblD.UseMnemonic = false;
             lblD.Text = description;
-            lblD.Font = new Font("Segoe UI", 8.5F);
+            lblD.Font = new Font("Segoe UI", 8.25F);
             lblD.ForeColor = ColTextSecondary;
             lblD.Location = new Point(12, 36);
-            lblD.Width = 320;
-            lblD.Height = 44;
+            lblD.Width = card.Width - 24;
+            lblD.Height = 48;
 
-            Button btn = CreatePillButton("  " + buttonText, btnIcon, ColCardAlt, ColTextPrimary, 320, 32);
-            btn.Location = new Point(12, 92);
+            // Action button
+            Button btn = CreatePillButton("  " + buttonText, icon, ColCardAlt, ColTextPrimary, card.Width - 24, 34);
+            btn.Location = new Point(12, 98);
+            btn.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             btn.Click += onClick;
 
+            card.Controls.Add(pic);
             card.Controls.Add(lblT);
+            card.Controls.Add(lblCat);
             card.Controls.Add(lblD);
             card.Controls.Add(btn);
 
-            return card;
+            _toolsFlowPanel.Controls.Add(card);
+
+            ToolCardItem item = new ToolCardItem();
+            item.CardPanel = card;
+            item.Category = categoryKey;
+            item.Title = title;
+            item.Description = description;
+            item.Keywords = keywords;
+            _allToolCards.Add(item);
+
+            return item;
+        }
+
+        private void PopulateSystemTools()
+        {
+            // -----------------------------------------------------------------
+            // 1. DIAGNOSTICS & SYSTEM HEALTH
+            // -----------------------------------------------------------------
+            AddToolCard(
+                "Diagnostics",
+                "DIAGNOSTICS",
+                "System Health & Diagnostic Specs",
+                "Gathers Windows OS build, uptime, CPU model, RAM usage %, and free disk space across all storage volumes.",
+                "Run Health Check Now",
+                UiIcon.HeartPulse,
+                delegate {
+                    LogToolMessage("Gathering system health diagnostics...");
+                    string res = SystemToolsManager.GetSystemHealthSummary();
+                    LogToolMessage(res);
+                },
+                ColAccentAmber,
+                "system health diagnostics specs cpu ram memory uptime os build storage disks drives"
+            );
+
+            AddToolCard(
+                "Diagnostics",
+                "DIAGNOSTICS",
+                "Recent Errors & BSOD Check",
+                "Inspects Windows Event Logs for critical crashes, BSOD BugChecks, and system error events in the last 48 hours.",
+                "Scan System Errors",
+                UiIcon.AlertCircle,
+                delegate {
+                    LogToolMessage("Scanning Windows Event Logs for recent critical errors & BSODs...");
+                    string res = SystemToolsManager.GetRecentSystemErrors();
+                    LogToolMessage(res);
+                },
+                ColAccentRed,
+                "recent errors bsod blue screen crash eventlog bugcheck dump fail critical system"
+            );
+
+            AddToolCard(
+                "Diagnostics",
+                "DIAGNOSTICS",
+                "Laptop Battery Health Report",
+                "Generates detailed powercfg battery health HTML report showing design capacity, full charge, and cycle count.",
+                "Generate Battery Report",
+                UiIcon.Battery,
+                delegate {
+                    LogToolMessage("Generating laptop battery health report...");
+                    string res = SystemToolsManager.GenerateBatteryReport();
+                    LogToolMessage(res);
+                },
+                ColAccentAmber,
+                "battery health report laptop powercfg capacity cycle count wear level"
+            );
+
+            AddToolCard(
+                "Diagnostics",
+                "DIAGNOSTICS",
+                "System File Repair (SFC & DISM)",
+                "Scans and repairs corrupted Windows system files and component store in an elevated command prompt.",
+                "Run SFC & DISM Scan",
+                UiIcon.Shield,
+                delegate {
+                    LogToolMessage("Launching elevated System File Checker & DISM repair...");
+                    SystemToolsManager.RunSystemFileCheck();
+                },
+                ColAccentAmber,
+                "sfc dism scannow restorehealth scan repair corrupt system files integrity"
+            );
+
+            AddToolCard(
+                "Diagnostics",
+                "DIAGNOSTICS",
+                "Event Viewer (eventvwr.msc)",
+                "Opens the full Windows Event Viewer console to review detailed system, security, and application logs.",
+                "Open eventvwr.msc",
+                UiIcon.Document,
+                delegate {
+                    LogToolMessage("Opening Windows Event Viewer console...");
+                    SystemToolsManager.OpenEventViewer();
+                },
+                ColAccentAmber,
+                "event viewer logs eventvwr administrative events audit security error"
+            );
+
+            // -----------------------------------------------------------------
+            // 2. NETWORK & INTERNET CONTROLS
+            // -----------------------------------------------------------------
+            AddToolCard(
+                "Network",
+                "NETWORK",
+                "Disable All Network / Internet",
+                "Instantly disables all active Ethernet and Wi-Fi adapters for offline setup, driver installs, or benchmarking.",
+                "Disconnect Network",
+                UiIcon.WifiOff,
+                delegate {
+                    LogToolMessage("Disabling all network adapters (offline mode)...");
+                    string res = SystemToolsManager.DisableAllNetworkAdapters();
+                    LogToolMessage(res);
+                },
+                ColAccentRed,
+                "disable internet network offline disconnect ethernet wifi block adapters"
+            );
+
+            AddToolCard(
+                "Network",
+                "NETWORK",
+                "Enable All Network / Internet",
+                "Re-enables all Ethernet and Wi-Fi network adapters and restores active internet connectivity.",
+                "Restore Network",
+                UiIcon.Wifi,
+                delegate {
+                    LogToolMessage("Re-enabling all network adapters...");
+                    string res = SystemToolsManager.EnableAllNetworkAdapters();
+                    LogToolMessage(res);
+                },
+                ColAccentCyan,
+                "enable internet network online reconnect ethernet wifi restore adapters"
+            );
+
+            AddToolCard(
+                "Network",
+                "NETWORK",
+                "Test Internet & Ping Latency",
+                "Pings Cloudflare (1.1.1.1) and Google (8.8.8.8) to check latency, response times, and verify internet connectivity.",
+                "Run Ping Test",
+                UiIcon.Network,
+                delegate {
+                    LogToolMessage("Running network connectivity ping diagnostics...");
+                    string res = SystemToolsManager.TestNetworkConnection();
+                    LogToolMessage(res);
+                },
+                ColAccentCyan,
+                "ping latency test internet connection speed packet loss cloudflare google"
+            );
+
+            AddToolCard(
+                "Network",
+                "NETWORK",
+                "Flush DNS Resolver Cache",
+                "Clears DNS resolver cache to fix website loading issues, resolve hostnames, and flush stale IP routing.",
+                "Flush DNS Cache",
+                UiIcon.Clean,
+                delegate {
+                    LogToolMessage("Flushing DNS resolver cache via ipconfig...");
+                    string result = SystemToolsManager.FlushDns();
+                    LogToolMessage(result);
+                },
+                ColAccentCyan,
+                "flush dns cache ipconfig clear resolve domain hostname network"
+            );
+
+            AddToolCard(
+                "Network",
+                "NETWORK",
+                "Set Cloudflare DNS (1.1.1.1)",
+                "Configures high-speed, privacy-first Cloudflare DNS (1.1.1.1 & 1.0.0.1) on active adapters.",
+                "Apply 1.1.1.1 DNS",
+                UiIcon.Speed,
+                delegate {
+                    LogToolMessage("Configuring Cloudflare DNS servers...");
+                    string res = SystemToolsManager.SetDnsServers("cloudflare");
+                    LogToolMessage(res);
+                },
+                ColAccentCyan,
+                "cloudflare dns 1.1.1.1 fast privacy nameserver network"
+            );
+
+            AddToolCard(
+                "Network",
+                "NETWORK",
+                "Set Google DNS (8.8.8.8)",
+                "Configures Google Public DNS servers (8.8.8.8 & 8.8.4.4) on all active network adapters.",
+                "Apply 8.8.8.8 DNS",
+                UiIcon.Speed,
+                delegate {
+                    LogToolMessage("Configuring Google Public DNS servers...");
+                    string res = SystemToolsManager.SetDnsServers("google");
+                    LogToolMessage(res);
+                },
+                ColAccentCyan,
+                "google dns 8.8.8.8 public nameserver network"
+            );
+
+            AddToolCard(
+                "Network",
+                "NETWORK",
+                "Reset DNS to Automatic (DHCP)",
+                "Restores automatic router/ISP DNS server assignment on all active network adapters.",
+                "Reset to DHCP",
+                UiIcon.Reload,
+                delegate {
+                    LogToolMessage("Resetting DNS server configuration to DHCP...");
+                    string res = SystemToolsManager.SetDnsServers("dhcp");
+                    LogToolMessage(res);
+                },
+                ColAccentCyan,
+                "dhcp automatic dns reset default isp router network"
+            );
+
+            AddToolCard(
+                "Network",
+                "NETWORK",
+                "Network Adapters (ncpa.cpl)",
+                "Open classic Windows Network Connections control panel to inspect Ethernet and Wi-Fi adapters.",
+                "Open ncpa.cpl",
+                UiIcon.Network,
+                delegate {
+                    LogToolMessage("Opening Network Connections panel...");
+                    SystemToolsManager.OpenNetworkConnections();
+                },
+                ColAccentCyan,
+                "ncpa.cpl network connections adapters ethernet wifi ip ipv4"
+            );
+
+            AddToolCard(
+                "Network",
+                "NETWORK",
+                "Sync Internet Time Now",
+                "Forces synchronization of system clock with Windows Internet Time servers (w32tm /resync).",
+                "Sync Clock Now",
+                UiIcon.Reload,
+                delegate {
+                    LogToolMessage("Synchronizing system time with time servers...");
+                    string res = SystemToolsManager.SyncTimeNow();
+                    LogToolMessage(res);
+                },
+                ColAccentCyan,
+                "sync time clock date w32tm resync internet ntp"
+            );
+
+            AddToolCard(
+                "Network",
+                "NETWORK",
+                "Time Zone Configuration",
+                "Open Time Zone selector to change system region (e.g. UTC+08:00 Manila, Beijing).",
+                "Change Time Zone",
+                UiIcon.Network,
+                delegate {
+                    LogToolMessage("Opening Time Zone selector dialog...");
+                    SystemToolsManager.OpenTimeZoneSettings();
+                },
+                ColAccentCyan,
+                "time zone utc region manila clock settings"
+            );
+
+            AddToolCard(
+                "Network",
+                "NETWORK",
+                "Date & Time Settings",
+                "Open Windows Settings to configure system clock, automatic time, and region format.",
+                "Open Time Settings",
+                UiIcon.ClockCircle,
+                delegate {
+                    LogToolMessage("Opening Windows Date & Time settings...");
+                    SystemToolsManager.OpenDateAndTimeSettings();
+                },
+                ColAccentCyan,
+                "date time settings clock regional format calendar"
+            );
+
+            // -----------------------------------------------------------------
+            // 3. PERFORMANCE & 1-CLICK TWEAKS
+            // -----------------------------------------------------------------
+            AddToolCard(
+                "Performance",
+                "PERFORMANCE",
+                "Ultimate Performance Power Plan",
+                "Enables Windows Ultimate Performance plan to prevent CPU throttling and maximize system responsiveness.",
+                "Activate Ultimate Plan",
+                UiIcon.Lightning,
+                delegate {
+                    LogToolMessage("Activating Ultimate Performance Power Plan...");
+                    string res = SystemToolsManager.EnableUltimatePerformance();
+                    LogToolMessage(res);
+                },
+                ColAccentGreen,
+                "ultimate performance power plan powercfg fps cpu unpark speed high performance"
+            );
+
+            AddToolCard(
+                "Performance",
+                "PERFORMANCE",
+                "1-Click Temp & Junk Cleaner",
+                "Safely cleans %temp%, Windows Temp, Prefetch, and temporary setup junk files to free disk space.",
+                "Clean Temp Files",
+                UiIcon.Clean,
+                delegate {
+                    LogToolMessage("Cleaning temporary and cache junk files...");
+                    string res = SystemToolsManager.CleanJunkAndTempFiles();
+                    LogToolMessage(res);
+                },
+                ColAccentGreen,
+                "clean temp junk cache prefetch disk space free storage cleaner delete"
+            );
+
+            AddToolCard(
+                "Performance",
+                "PERFORMANCE",
+                "Disable Hibernation (Save SSD)",
+                "Deletes hiberfil.sys and disables hibernation to immediately reclaim 8-16 GB of SSD storage space.",
+                "Disable Hibernation",
+                UiIcon.Power,
+                delegate {
+                    LogToolMessage("Disabling Windows Hibernation...");
+                    string res = SystemToolsManager.DisableHibernation();
+                    LogToolMessage(res);
+                },
+                ColAccentGreen,
+                "hibernation hiberfil.sys ssd space reclaim disable sleep powercfg"
+            );
+
+            AddToolCard(
+                "Performance",
+                "PERFORMANCE",
+                "Pause Windows Updates (35 Days)",
+                "Pauses automatic Windows Updates for up to 35 days to prevent unexpected background reboots during work.",
+                "Pause Updates 35 Days",
+                UiIcon.ClockCircle,
+                delegate {
+                    LogToolMessage("Configuring Windows Updates pause duration...");
+                    string res = SystemToolsManager.PauseWindowsUpdates();
+                    LogToolMessage(res);
+                },
+                ColAccentGreen,
+                "pause windows updates delay postpone reboot wuauserv prevent update"
+            );
+
+            AddToolCard(
+                "Performance",
+                "PERFORMANCE",
+                "Show Extensions & Hidden Files",
+                "Unhides file extensions (.exe, .zip, .iso) and hidden system files in Windows File Explorer.",
+                "Show Extensions & Hidden",
+                UiIcon.Settings,
+                delegate {
+                    LogToolMessage("Updating Explorer folder view settings...");
+                    string res = SystemToolsManager.ToggleShowFileExtensions();
+                    LogToolMessage(res);
+                },
+                ColAccentGreen,
+                "file extensions hidden files explorer unhide show dot exe view"
+            );
+
+            // -----------------------------------------------------------------
+            // 4. HARDWARE, DRIVERS & DIAGNOSTICS
+            // -----------------------------------------------------------------
+            AddToolCard(
+                "Hardware",
+                "HARDWARE",
+                "Device Manager (devmgmt.msc)",
+                "Check hardware components, installed drivers, and look for missing hardware devices or driver errors.",
+                "Open devmgmt.msc",
+                UiIcon.Settings,
+                delegate {
+                    LogToolMessage("Launching Windows Device Manager...");
+                    SystemToolsManager.OpenDeviceManager();
+                },
+                ColAccentBlue,
+                "device manager devmgmt hardware drivers devices missing exclamation"
+            );
+
+            AddToolCard(
+                "Hardware",
+                "HARDWARE",
+                "IObit Driver Booster",
+                "Runs Driver Booster to automatically scan for outdated or missing motherboard, audio, and GPU drivers.",
+                "Launch Driver Booster",
+                UiIcon.Lightning,
+                delegate {
+                    LogToolMessage("Checking IObit Driver Booster Portable...");
+                    string res = SystemToolsManager.LaunchOrDeployDriverBooster();
+                    LogToolMessage(res);
+                },
+                ColAccentBlue,
+                "driver booster drivers iobit update sound network gpu portable"
+            );
+
+            AddToolCard(
+                "Hardware",
+                "HARDWARE",
+                "CrystalDiskInfo (Portable)",
+                "Inspect SSD/HDD health percentage, temperature, power-on hours, and SMART drive status.",
+                "Launch CrystalDiskInfo",
+                UiIcon.HardDrive,
+                delegate {
+                    LogToolMessage("Checking CrystalDiskInfo Portable...");
+                    string res = SystemToolsManager.LaunchCrystalDiskInfo();
+                    LogToolMessage(res);
+                },
+                ColAccentBlue,
+                "crystaldiskinfo smart ssd hdd disk health temperature status drive"
+            );
+
+            AddToolCard(
+                "Hardware",
+                "HARDWARE",
+                "CPU-Z (Portable)",
+                "View detailed processor clock speeds, motherboard model, BIOS revision, and memory timing specs.",
+                "Launch CPU-Z",
+                UiIcon.Chip,
+                delegate {
+                    LogToolMessage("Checking CPU-Z Portable...");
+                    string res = SystemToolsManager.LaunchCpuZ();
+                    LogToolMessage(res);
+                },
+                ColAccentBlue,
+                "cpu-z cpuz cpu motherboard ram timings bios processor memory"
+            );
+
+            // -----------------------------------------------------------------
+            // 5. WINDOWS SYSTEM ADMINISTRATION
+            // -----------------------------------------------------------------
+            AddToolCard(
+                "Admin",
+                "ADMIN",
+                "Rename This PC (Computer Name)",
+                "Safely change the NetBIOS computer device name with validation and instant reboot options.",
+                "Rename PC Now",
+                UiIcon.Computer,
+                delegate {
+                    using (RenamePcForm dlg = new RenamePcForm())
+                    {
+                        if (dlg.ShowDialog(this) == DialogResult.OK)
+                        {
+                            LogToolMessage("Applying new computer name: " + dlg.NewComputerName + "...");
+                            string res = SystemToolsManager.RenameComputer(dlg.NewComputerName);
+                            LogToolMessage(res);
+                            if (dlg.RestartNow)
+                            {
+                                LogToolMessage("Restart requested. Computer will restart in 10 seconds...");
+                                try
+                                {
+                                    Process.Start("shutdown.exe", "/r /t 10 /c \"TechInstaller: Restarting to apply new computer name...\"");
+                                }
+                                catch (Exception ex)
+                                {
+                                    LogToolMessage("Failed to initiate restart: " + ex.Message);
+                                }
+                            }
+                        }
+                    }
+                },
+                ColAccentPurple,
+                "rename pc computer name netbios hostname machine identify"
+            );
+
+            AddToolCard(
+                "Admin",
+                "ADMIN",
+                "Windows Master GodMode",
+                "Opens Windows GodMode folder with 200+ deep administrative shortcuts and configuration controls in one window.",
+                "Open GodMode Folder",
+                UiIcon.Settings,
+                delegate {
+                    LogToolMessage("Launching Windows Master GodMode folder...");
+                    string res = SystemToolsManager.OpenGodMode();
+                    LogToolMessage(res);
+                },
+                ColAccentPurple,
+                "godmode master control panel deep settings admin shortcuts tweaks"
+            );
+
+            AddToolCard(
+                "Admin",
+                "ADMIN",
+                "Disk Management (diskmgmt.msc)",
+                "Partition drives, initialize newly attached SSD/HDD, shrink/extend volumes, and assign drive letters.",
+                "Open diskmgmt.msc",
+                UiIcon.HardDrive,
+                delegate {
+                    LogToolMessage("Opening Windows Disk Management console...");
+                    SystemToolsManager.OpenDiskManagement();
+                },
+                ColAccentPurple,
+                "disk management diskmgmt partition format shrink volume drive letter partition"
+            );
+
+            AddToolCard(
+                "Admin",
+                "ADMIN",
+                "System Properties (sysdm.cpl)",
+                "Configure Workgroup, Environment Variables, Pagefile / Virtual Memory, and Remote settings.",
+                "Open sysdm.cpl",
+                UiIcon.Document,
+                delegate {
+                    LogToolMessage("Opening System Properties (Advanced)...");
+                    SystemToolsManager.OpenSystemPropertiesAdvanced();
+                },
+                ColAccentPurple,
+                "sysdm.cpl system properties pagefile virtual memory environment variables workgroup"
+            );
+
+            AddToolCard(
+                "Admin",
+                "ADMIN",
+                "Task Manager & Startup Apps",
+                "Inspect real-time CPU/RAM usage, kill non-responsive programs, and manage Windows startup apps.",
+                "Open Task Manager",
+                UiIcon.Speed,
+                delegate {
+                    LogToolMessage("Launching Windows Task Manager...");
+                    SystemToolsManager.OpenTaskManager();
+                },
+                ColAccentPurple,
+                "task manager taskmgr startup processes kill memory cpu usage performance"
+            );
+
+            AddToolCard(
+                "Admin",
+                "ADMIN",
+                "Windows Services (services.msc)",
+                "Inspect and control background Windows services, start/stop services, and set startup types.",
+                "Open services.msc",
+                UiIcon.Settings,
+                delegate {
+                    LogToolMessage("Opening Windows Services console...");
+                    SystemToolsManager.OpenServicesManager();
+                },
+                ColAccentPurple,
+                "services.msc services background start stop restart startup daemon"
+            );
+
+            AddToolCard(
+                "Admin",
+                "ADMIN",
+                "Windows Defender Security",
+                "Open Windows Security settings, Virus & Threat Protection, firewall, and scan exclusions.",
+                "Open Windows Security",
+                UiIcon.Shield,
+                delegate {
+                    LogToolMessage("Opening Windows Security...");
+                    SystemToolsManager.OpenWindowsSecurity();
+                },
+                ColAccentPurple,
+                "defender antivirus security protection exclusions virus threat firewall"
+            );
+
+            AddToolCard(
+                "Admin",
+                "ADMIN",
+                "Windows Activation & License",
+                "Check genuine digital license activation status or enter a product key in Windows Settings.",
+                "Open Activation",
+                UiIcon.Key,
+                delegate {
+                    LogToolMessage("Opening Windows Activation & Licensing panel...");
+                    SystemToolsManager.OpenActivationSettings();
+                },
+                ColAccentPurple,
+                "activation product key license digital slmgr genuine windows"
+            );
+
+            // -----------------------------------------------------------------
+            // 6. AUTOMATION, SCRIPTS & SHELL UTILITIES
+            // -----------------------------------------------------------------
+            AddToolCard(
+                "Automation",
+                "SCRIPTS",
+                "Restart Windows Explorer",
+                "Terminates and restarts explorer.exe to resolve frozen taskbars, reload desktop shell, and release stuck file locks.",
+                "Restart Explorer Shell",
+                UiIcon.RefreshCw,
+                delegate {
+                    LogToolMessage("Restarting Windows Explorer shell...");
+                    string res = SystemToolsManager.RestartWindowsExplorer();
+                    LogToolMessage(res);
+                },
+                Color.FromArgb(236, 72, 153),
+                "restart explorer taskbar frozen desktop shell reload refresh"
+            );
+
+            AddToolCard(
+                "Automation",
+                "SCRIPTS",
+                "Rebuild Shell Icon Cache",
+                "Clears corrupted IconCache.db and thumbnail databases, then refreshes Windows desktop and taskbar icons.",
+                "Rebuild Icon Cache",
+                UiIcon.Clean,
+                delegate {
+                    LogToolMessage("Rebuilding Windows Shell Icon Cache...");
+                    string res = SystemToolsManager.RebuildIconCache();
+                    LogToolMessage(res);
+                },
+                Color.FromArgb(236, 72, 153),
+                "rebuild icon cache iconcache.db blank white icons refresh shell thumbnail"
+            );
+
+            AddToolCard(
+                "Automation",
+                "SCRIPTS",
+                "Run Custom Script (custom.ps1)",
+                "Executes your technician PowerShell script at scripts\\custom.ps1 as Administrator.",
+                "Run custom.ps1",
+                UiIcon.Play,
+                delegate {
+                    LogToolMessage("Launching custom PowerShell script (scripts\\custom.ps1)...");
+                    SystemToolsManager.OpenCustomPowerShellScript();
+                },
+                Color.FromArgb(236, 72, 153),
+                "custom script custom.ps1 powershell run technician automation"
+            );
+
+            AddToolCard(
+                "Automation",
+                "SCRIPTS",
+                "Edit custom.ps1 Script",
+                "Opens scripts\\custom.ps1 in Notepad so you can add or modify your technician automation commands.",
+                "Edit in Notepad",
+                UiIcon.Edit,
+                delegate {
+                    LogToolMessage("Opening scripts\\custom.ps1 in Notepad...");
+                    SystemToolsManager.EditCustomPowerShellScript();
+                },
+                Color.FromArgb(236, 72, 153),
+                "edit custom.ps1 notepad script customize technician"
+            );
+
+            AddToolCard(
+                "Automation",
+                "SCRIPTS",
+                "Administrator PowerShell",
+                "Opens a clean elevated PowerShell console window ready for manual technician commands.",
+                "Open PowerShell",
+                UiIcon.CommandLine,
+                delegate {
+                    LogToolMessage("Opening Administrator PowerShell console...");
+                    SystemToolsManager.OpenElevatedPowerShell();
+                },
+                Color.FromArgb(236, 72, 153),
+                "powershell admin elevated cmd terminal command line console"
+            );
+
+            AddToolCard(
+                "Automation",
+                "SCRIPTS",
+                "Desktop Background & Themes",
+                "Change desktop wallpaper, lock screen, colors, and toggle Windows dark/light mode.",
+                "Change Background",
+                UiIcon.Theme,
+                delegate {
+                    LogToolMessage("Opening Personalization & Wallpaper settings...");
+                    SystemToolsManager.OpenDesktopBackgroundSettings();
+                },
+                Color.FromArgb(236, 72, 153),
+                "desktop background wallpaper themes dark light personalization"
+            );
         }
 
         private void LogToolMessage(string message)
@@ -1909,6 +2442,18 @@ namespace TechInstaller
             btn.TextImageRelation = TextImageRelation.ImageBeforeText;
             btn.ImageAlign = ContentAlignment.MiddleCenter;
             return btn;
+        }
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+        private static extern int SendMessage(IntPtr hWnd, int msg, int wParam, [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.LPWStr)] string lParam);
+
+        private static void SetCueBanner(TextBox textBox, string cueBannerText)
+        {
+            try
+            {
+                SendMessage(textBox.Handle, 0x1501, 1, cueBannerText);
+            }
+            catch { }
         }
 
         private void EnableDoubleBuffering(Control control)

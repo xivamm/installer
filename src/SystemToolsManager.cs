@@ -4,6 +4,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Windows.Forms;
 using Microsoft.Win32;
 
 namespace TechInstaller
@@ -90,6 +91,18 @@ namespace TechInstaller
             catch
             {
                 Process.Start("control.exe", "/name Microsoft.WindowsDefender");
+            }
+        }
+
+        public static void OpenEventViewer()
+        {
+            try
+            {
+                Process.Start("eventvwr.msc");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Could not launch Event Viewer: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -454,6 +467,197 @@ namespace TechInstaller
             }
 
             return "Extracted to " + targetDir + " successfully.";
+        }
+
+        public static string RenameComputer(string newName)
+        {
+            if (string.IsNullOrEmpty(newName) || newName.Trim().Length == 0)
+            {
+                return "Error: Computer name cannot be empty.";
+            }
+
+            newName = newName.Trim();
+            if (newName.Length > 15)
+            {
+                return "Error: Computer name must be 15 characters or fewer (NetBIOS limit).";
+            }
+
+            try
+            {
+                string script = string.Format("Rename-Computer -NewName '{0}' -Force -ErrorAction Stop; 'SUCCESS'", newName);
+                string output = RunSilentCommand("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -Command \"" + script + "\"");
+                if (output.Contains("SUCCESS"))
+                {
+                    return string.Format("Computer successfully renamed to '{0}'! Please restart the computer to apply the new name.", newName);
+                }
+                return "Rename notice: " + output.Trim();
+            }
+            catch (Exception ex)
+            {
+                return "Failed to rename computer: " + ex.Message;
+            }
+        }
+
+        public static string DisableAllNetworkAdapters()
+        {
+            try
+            {
+                string script = "$adapters = Get-NetAdapter | Where-Object Status -ne 'Disabled'; foreach ($a in $adapters) { Disable-NetAdapter -InterfaceIndex $a.InterfaceIndex -Confirm:$false }; 'Disabled ' + $adapters.Count + ' network adapter(s). Internet is now disconnected.'";
+                string output = RunSilentCommand("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -Command \"" + script + "\"");
+                return output.Trim();
+            }
+            catch (Exception ex)
+            {
+                return "Failed to disable network adapters: " + ex.Message;
+            }
+        }
+
+        public static string EnableAllNetworkAdapters()
+        {
+            try
+            {
+                string script = "$adapters = Get-NetAdapter | Where-Object Status -eq 'Disabled'; foreach ($a in $adapters) { Enable-NetAdapter -InterfaceIndex $a.InterfaceIndex -Confirm:$false }; 'Enabled ' + $adapters.Count + ' network adapter(s). Network connectivity restored.'";
+                string output = RunSilentCommand("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -Command \"" + script + "\"");
+                return output.Trim();
+            }
+            catch (Exception ex)
+            {
+                return "Failed to enable network adapters: " + ex.Message;
+            }
+        }
+
+        public static string TestNetworkConnection()
+        {
+            try
+            {
+                string script = "$pingC = Test-Connection -ComputerName 1.1.1.1 -Count 2 -Quiet -ErrorAction SilentlyContinue; $pingG = Test-Connection -ComputerName 8.8.8.8 -Count 2 -Quiet -ErrorAction SilentlyContinue; $gw = (Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Select-Object -First 1).NextHop; $ad = (Get-NetAdapter | Where-Object Status -eq 'Up' | Select-Object -ExpandProperty Name) -join ', '; '=== NETWORK CONNECTIVITY TEST ==='; 'Active Interface(s) : ' + $(if ($ad) { $ad } else { 'None (Offline)' }); 'Default Gateway     : ' + $(if ($gw) { $gw } else { 'No Gateway' }); 'Cloudflare (1.1.1.1): ' + $(if ($pingC) { 'REACHABLE (OK)' } else { 'UNREACHABLE' }); 'Google DNS (8.8.8.8): ' + $(if ($pingG) { 'REACHABLE (OK)' } else { 'UNREACHABLE' }); 'Status              : ' + $(if ($pingC -or $pingG) { 'ONLINE - Internet working properly' } else { 'OFFLINE - No internet access' })";
+                string output = RunSilentCommand("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -Command \"" + script + "\"");
+                return output.Trim();
+            }
+            catch (Exception ex)
+            {
+                return "Network test error: " + ex.Message;
+            }
+        }
+
+        public static string GetSystemHealthSummary()
+        {
+            try
+            {
+                string script = "$os = Get-CimInstance Win32_OperatingSystem; $up = (Get-Date) - $os.LastBootUpTime; $cpu = Get-CimInstance Win32_Processor | Select-Object -First 1; $tRam = [Math]::Round($os.TotalVisibleMemorySize / 1MB, 2); $fRam = [Math]::Round($os.FreePhysicalMemory / 1MB, 2); $uRam = [Math]::Round($tRam - $fRam, 2); $rPct = [Math]::Round(($uRam / $tRam) * 100, 1); '=================================================='; '             SYSTEM HEALTH DIAGNOSTIC             '; '=================================================='; 'OS Version   : ' + $os.Caption + ' (' + $os.Version + ' ' + $os.OSArchitecture + ')'; 'Uptime       : ' + [int]$up.TotalDays + ' days, ' + $up.Hours + ' hours, ' + $up.Minutes + ' mins'; 'Computer Name: ' + $env:COMPUTERNAME; 'CPU Model    : ' + $cpu.Name.Trim(); 'CPU Topology : ' + $cpu.NumberOfCores + ' Cores / ' + $cpu.NumberOfLogicalProcessors + ' Threads'; 'Memory (RAM) : ' + $uRam + ' GB used / ' + $tRam + ' GB total (' + $rPct + '% utilization)'; ''; 'STORAGE VOLUMES:'; foreach ($d in (Get-Volume | Where-Object { $_.DriveLetter } | Sort-Object DriveLetter)) { $tG = [Math]::Round($d.Size / 1GB, 1); $fG = [Math]::Round($d.SizeRemaining / 1GB, 1); $pFree = if ($tG -gt 0) { [Math]::Round(($fG / $tG) * 100, 1) } else { 0 }; '  Drive ' + $d.DriveLetter + ': [' + $d.FileSystemType + '] ' + $fG + ' GB free of ' + $tG + ' GB (' + $pFree + '% free) - ' + $d.HealthStatus }; $bat = Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue; if ($bat) { ''; 'BATTERY: ' + $bat.EstimatedChargeRemaining + '% charge (' + $(if ($bat.BatteryStatus -eq 2) { 'Charging' } else { 'Discharging/AC' }) + ')' }; '=================================================='";
+                string output = RunSilentCommand("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -Command \"" + script + "\"");
+                return output.Trim();
+            }
+            catch (Exception ex)
+            {
+                return "Failed to generate health summary: " + ex.Message;
+            }
+        }
+
+        public static string GetRecentSystemErrors()
+        {
+            try
+            {
+                string script = "'=================================================='; '        RECENT SYSTEM & APPLICATION ERRORS        '; '               (Last 48 Hours)                    '; '=================================================='; $ev = Get-WinEvent -FilterHashtable @{LogName=@('System','Application'); Level=1,2; StartTime=(Get-Date).AddDays(-2)} -MaxEvents 10 -ErrorAction SilentlyContinue; if (!$ev -or $ev.Count -eq 0) { 'No critical or error events recorded in the last 48 hours! System is healthy.' } else { foreach ($e in $ev) { $lvl = switch ($e.Level) { 1 { '[CRITICAL]' } 2 { '[ERROR]   ' } default { '[INFO]    ' } }; $m = ($e.Message -replace '[\\r\\n\\t]+', ' ').Trim(); if ($m.Length -gt 85) { $m = $m.Substring(0, 85) + '...' }; ($lvl + ' ' + $e.TimeCreated.ToString('yyyy-MM-dd HH:mm') + ' | ' + $e.ProviderName + ' (' + $e.Id + '):'); ('  ' + $m) } }; $bsod = Get-WinEvent -FilterHashtable @{LogName='System'; ProviderName='Microsoft-Windows-WER-SystemErrorReporting','BugCheck'; StartTime=(Get-Date).AddDays(-7)} -MaxEvents 3 -ErrorAction SilentlyContinue; if ($bsod) { ''; 'CRASH / BSOD BUGCHECKS (Last 7 Days):'; foreach ($b in $bsod) { '  ' + $b.TimeCreated.ToString('yyyy-MM-dd HH:mm') + ' - ' + ($b.Message -replace '[\\r\\n\\t]+', ' ').Trim() } }; '=================================================='";
+                string output = RunSilentCommand("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -Command \"" + script + "\"");
+                return output.Trim();
+            }
+            catch (Exception ex)
+            {
+                return "Failed to query system errors: " + ex.Message;
+            }
+        }
+
+        public static string RestartWindowsExplorer()
+        {
+            try
+            {
+                foreach (Process p in Process.GetProcessesByName("explorer"))
+                {
+                    try { p.Kill(); p.WaitForExit(2000); } catch { }
+                }
+                System.Threading.Thread.Sleep(600);
+                Process.Start("explorer.exe");
+                return "Windows Explorer restarted successfully. Taskbar and desktop refreshed.";
+            }
+            catch (Exception ex)
+            {
+                return "Failed to restart explorer: " + ex.Message;
+            }
+        }
+
+        public static string RebuildIconCache()
+        {
+            try
+            {
+                string script = "Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 800; $cp = Join-Path $env:LOCALAPPDATA 'IconCache.db'; if (Test-Path $cp) { Remove-Item $cp -Force -ErrorAction SilentlyContinue }; $ec = Join-Path $env:LOCALAPPDATA 'Microsoft\\Windows\\Explorer'; if (Test-Path $ec) { Get-ChildItem -Path $ec -Filter 'iconcache*.db' -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue; Get-ChildItem -Path $ec -Filter 'thumbcache*.db' -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue }; Start-Sleep -Milliseconds 500; Start-Process explorer.exe; 'Icon and thumbnail cache purged. Windows Explorer restarted!'";
+                string output = RunSilentCommand("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -Command \"" + script + "\"");
+                return output.Trim();
+            }
+            catch (Exception ex)
+            {
+                return "Failed to rebuild icon cache: " + ex.Message;
+            }
+        }
+
+        public static string GenerateBatteryReport()
+        {
+            try
+            {
+                string reportPath = Path.Combine(Path.GetTempPath(), "battery-report.html");
+                string res = RunSilentCommand("powercfg.exe", "/batteryreport /output \"" + reportPath + "\"");
+                if (File.Exists(reportPath))
+                {
+                    Process.Start(reportPath);
+                    return "Battery report generated: " + reportPath + " (opened in browser).";
+                }
+                return "Battery Report: " + res.Trim();
+            }
+            catch (Exception ex)
+            {
+                return "Failed to generate battery report: " + ex.Message;
+            }
+        }
+
+        public static string PauseWindowsUpdates()
+        {
+            try
+            {
+                string script = "$pd = (Get-Date).AddDays(35).ToString('yyyy-MM-ddTHH:mm:ssZ'); $k = 'HKLM:\\SOFTWARE\\Microsoft\\WindowsUpdate\\UX\\Settings'; if (!(Test-Path $k)) { New-Item -Path $k -Force | Out-Null }; Set-ItemProperty -Path $k -Name 'PauseUpdatesExpiryTime' -Value $pd -Force; Set-ItemProperty -Path $k -Name 'PauseFeatureUpdatesStartTime' -Value (Get-Date).ToString('yyyy-MM-ddTHH:mm:ssZ') -Force; Set-ItemProperty -Path $k -Name 'PauseQualityUpdatesStartTime' -Value (Get-Date).ToString('yyyy-MM-ddTHH:mm:ssZ') -Force; 'Windows automatic updates successfully paused for 35 days (until ' + (Get-Date).AddDays(35).ToString('MMMM dd, yyyy') + ').'";
+                string output = RunSilentCommand("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -Command \"" + script + "\"");
+                return output.Trim();
+            }
+            catch (Exception ex)
+            {
+                return "Failed to pause updates: " + ex.Message;
+            }
+        }
+
+        public static string OpenGodMode()
+        {
+            try
+            {
+                Process.Start("shell:::{ED7BA470-8E54-465E-825C-99712043E01C}");
+                return "Opened Windows GodMode (All Tasks Master Control Panel).";
+            }
+            catch
+            {
+                try
+                {
+                    string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+                    string godModeFolder = Path.Combine(desktopPath, "GodMode.{ED7BA470-8E54-465E-825C-99712043E01C}");
+                    if (!Directory.Exists(godModeFolder))
+                    {
+                        Directory.CreateDirectory(godModeFolder);
+                    }
+                    Process.Start(godModeFolder);
+                    return "Created GodMode folder on Desktop and opened master control panel.";
+                }
+                catch (Exception ex)
+                {
+                    return "Could not open GodMode: " + ex.Message;
+                }
+            }
         }
 
         private static string RunSilentCommand(string fileName, string arguments)
