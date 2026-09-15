@@ -940,6 +940,18 @@ namespace TechInstaller
                 }
             ));
 
+            // 1b. IObit Driver Booster Portable
+            _toolsFlowPanel.Controls.Add(CreateToolCard(
+                "⚡ IObit Driver Booster",
+                "Extract and run Driver Booster to automatically scan & install missing hardware drivers.",
+                "🚀 Launch Driver Booster",
+                delegate {
+                    LogToolMessage("Checking IObit Driver Booster Portable...");
+                    string res = SystemToolsManager.LaunchOrDeployDriverBooster();
+                    LogToolMessage(res);
+                }
+            ));
+
             // 2. Date & Time Settings
             _toolsFlowPanel.Controls.Add(CreateToolCard(
                 "🕒 Date & Time Settings",

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Net;
 using System.Text;
 using System.Threading;
@@ -246,6 +247,10 @@ namespace TechInstaller
             {
                 return DeployMicrosoftOffice(app, tempDir, cacheDir);
             }
+            else if (app.SpecialAction == "portable_driver_booster" || app.SpecialAction == "portable_extract")
+            {
+                return DeployPortableApp(app, tempDir, cacheDir);
+            }
 
             return false;
         }
@@ -343,6 +348,193 @@ namespace TechInstaller
 
             Log("[INSTALLING] Installing Microsoft Office (Word, Excel, PowerPoint)... Please wait.", LogLevel.Info);
             return ExecuteProcess(setupExe, string.Format("/configure \"{0}\"", xmlPath));
+        }
+
+        private bool DeployPortableApp(AppItem app, string tempDir, string cacheDir)
+        {
+            string zipPath = Path.Combine(cacheDir, app.CacheFileName);
+            if (!File.Exists(zipPath))
+            {
+                string localCandidate = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, app.CacheFileName);
+                if (File.Exists(localCandidate))
+                {
+                    zipPath = localCandidate;
+                }
+            }
+
+            if (!File.Exists(zipPath))
+            {
+                if (string.IsNullOrEmpty(app.DownloadUrl))
+                {
+                    Log(string.Format("Archive not found in cache: {0}", app.CacheFileName), LogLevel.Error);
+                    return false;
+                }
+
+                Log(string.Format("[DOWNLOAD] Downloading {0}...", app.Name), LogLevel.Download);
+                bool dl = DownloadFileWithProgress(app.DownloadUrl, zipPath, app.Name);
+                if (!dl || !File.Exists(zipPath))
+                {
+                    return false;
+                }
+            }
+
+            string folderName = "DriverBooster";
+            if (app.Id.IndexOf("driver", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                folderName = "DriverBooster";
+            }
+            else
+            {
+                folderName = Path.GetFileNameWithoutExtension(app.CacheFileName).Replace("Portable", "").Replace("portable", "").Trim();
+                if (string.IsNullOrEmpty(folderName)) folderName = app.Name;
+            }
+
+            string targetDir = Path.Combine(@"C:\Tools", folderName);
+            try
+            {
+                if (!Directory.Exists(targetDir))
+                {
+                    Directory.CreateDirectory(targetDir);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log(string.Format("Failed to create directory {0}: {1}", targetDir, ex.Message), LogLevel.Error);
+                return false;
+            }
+
+            Log(string.Format("[EXTRACT] Unzipping {0} to {1}...", app.Name, targetDir), LogLevel.Info);
+
+            bool extractSuccess = false;
+            try
+            {
+                using (ZipArchive archive = ZipFile.OpenRead(zipPath))
+                {
+                    foreach (ZipArchiveEntry entry in archive.Entries)
+                    {
+                        string destPath = Path.Combine(targetDir, entry.FullName);
+                        string entryDir = Path.GetDirectoryName(destPath);
+                        if (!string.IsNullOrEmpty(entryDir) && !Directory.Exists(entryDir))
+                        {
+                            Directory.CreateDirectory(entryDir);
+                        }
+
+                        if (!string.IsNullOrEmpty(entry.Name))
+                        {
+                            entry.ExtractToFile(destPath, true);
+                        }
+                    }
+                }
+                extractSuccess = true;
+            }
+            catch (Exception ex)
+            {
+                Log(string.Format("Zip extraction notice: {0}. Trying fallback extractor...", ex.Message), LogLevel.Warning);
+                extractSuccess = ExecuteProcess("tar.exe", string.Format("-xf \"{0}\" -C \"{1}\"", zipPath, targetDir));
+                if (!extractSuccess)
+                {
+                    string psCmd = string.Format("Expand-Archive -Path '{0}' -DestinationPath '{1}' -Force", zipPath, targetDir);
+                    extractSuccess = ExecuteProcess("powershell.exe", string.Format("-NoProfile -ExecutionPolicy Bypass -Command \"{0}\"", psCmd));
+                }
+            }
+
+            if (!extractSuccess)
+            {
+                Log("Extraction failed.", LogLevel.Error);
+                return false;
+            }
+
+            // Find executable
+            string targetExe = null;
+            string directExe = Path.Combine(targetDir, "DriverBoosterPortable.exe");
+            if (File.Exists(directExe))
+            {
+                targetExe = directExe;
+            }
+            else
+            {
+                string[] exeCandidates = Directory.GetFiles(targetDir, "*.exe", SearchOption.AllDirectories);
+                foreach (string candidate in exeCandidates)
+                {
+                    string fn = Path.GetFileName(candidate).ToLowerInvariant();
+                    if (fn.Contains("driver") || fn.Contains("booster") || fn.Contains("portable"))
+                    {
+                        targetExe = candidate;
+                        break;
+                    }
+                }
+                if (string.IsNullOrEmpty(targetExe) && exeCandidates.Length > 0)
+                {
+                    targetExe = exeCandidates[0];
+                }
+            }
+
+            if (string.IsNullOrEmpty(targetExe) || !File.Exists(targetExe))
+            {
+                Log("Warning: Could not locate main executable inside extracted folder.", LogLevel.Warning);
+                return true;
+            }
+
+            // Create Desktop Shortcut
+            string shortcutTitle = "IObit Driver Booster";
+            if (app.Id.IndexOf("driver", StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                shortcutTitle = app.Name;
+            }
+
+            string userDesktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            string desktopLnk = Path.Combine(userDesktop, shortcutTitle + ".lnk");
+            CreateWindowsShortcut(targetExe, desktopLnk, app.Name);
+
+            try
+            {
+                string commonDesktop = Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory);
+                if (!string.IsNullOrEmpty(commonDesktop) && Directory.Exists(commonDesktop))
+                {
+                    string publicLnk = Path.Combine(commonDesktop, shortcutTitle + ".lnk");
+                    CreateWindowsShortcut(targetExe, publicLnk, app.Name);
+                }
+            }
+            catch { }
+
+            try
+            {
+                string commonStartMenu = Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu);
+                string programsDir = Path.Combine(commonStartMenu, "Programs");
+                if (Directory.Exists(programsDir))
+                {
+                    string startLnk = Path.Combine(programsDir, shortcutTitle + ".lnk");
+                    CreateWindowsShortcut(targetExe, startLnk, app.Name);
+                }
+            }
+            catch { }
+
+            Log(string.Format("[SUCCESS] {0} ready at {1}", app.Name, targetDir), LogLevel.Success);
+            Log(string.Format("[SHORTCUT] Created Desktop & Start Menu shortcut: '{0}'", shortcutTitle), LogLevel.Success);
+            return true;
+        }
+
+        private void CreateWindowsShortcut(string targetPath, string shortcutPath, string description)
+        {
+            try
+            {
+                Type shellType = Type.GetTypeFromProgID("WScript.Shell");
+                if (shellType == null) return;
+                object shell = Activator.CreateInstance(shellType);
+                object shortcut = shellType.InvokeMember("CreateShortcut",
+                    System.Reflection.BindingFlags.InvokeMethod, null, shell, new object[] { shortcutPath });
+                if (shortcut == null) return;
+
+                Type scType = shortcut.GetType();
+                scType.InvokeMember("TargetPath", System.Reflection.BindingFlags.SetProperty, null, shortcut, new object[] { targetPath });
+                scType.InvokeMember("WorkingDirectory", System.Reflection.BindingFlags.SetProperty, null, shortcut, new object[] { Path.GetDirectoryName(targetPath) });
+                scType.InvokeMember("Description", System.Reflection.BindingFlags.SetProperty, null, shortcut, new object[] { description });
+                scType.InvokeMember("Save", System.Reflection.BindingFlags.InvokeMethod, null, shortcut, null);
+            }
+            catch (Exception ex)
+            {
+                Log(string.Format("Notice: Could not save shortcut ({0})", ex.Message), LogLevel.Warning);
+            }
         }
 
         private bool DownloadFileWithProgress(string url, string destinationPath, string displayName)

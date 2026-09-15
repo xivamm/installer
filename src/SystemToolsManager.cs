@@ -1,5 +1,7 @@
 using System;
 using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
 using System.Text;
 
 namespace TechInstaller
@@ -193,6 +195,90 @@ namespace TechInstaller
             {
                 return "Failed to set DNS: " + ex.Message;
             }
+        }
+
+        public static string LaunchOrDeployDriverBooster()
+        {
+            string portableExe = @"C:\Tools\DriverBooster\DriverBoosterPortable.exe";
+            if (File.Exists(portableExe))
+            {
+                Process.Start(portableExe);
+                return "Launched Driver Booster from " + portableExe;
+            }
+
+            string cacheDir = ConfigManager.GetCacheDirectory();
+            string zipPath = Path.Combine(cacheDir, "DriverBoosterPortable.zip");
+            if (!File.Exists(zipPath))
+            {
+                zipPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DriverBoosterPortable.zip");
+            }
+
+            if (!File.Exists(zipPath))
+            {
+                return "DriverBoosterPortable.zip not found in cache. Place it in the 'cache' folder or install from Software tab.";
+            }
+
+            string targetDir = @"C:\Tools\DriverBooster";
+            if (!Directory.Exists(targetDir))
+            {
+                Directory.CreateDirectory(targetDir);
+            }
+
+            try
+            {
+                using (ZipArchive archive = ZipFile.OpenRead(zipPath))
+                {
+                    foreach (ZipArchiveEntry entry in archive.Entries)
+                    {
+                        string destPath = Path.Combine(targetDir, entry.FullName);
+                        string entryDir = Path.GetDirectoryName(destPath);
+                        if (!string.IsNullOrEmpty(entryDir) && !Directory.Exists(entryDir))
+                        {
+                            Directory.CreateDirectory(entryDir);
+                        }
+
+                        if (!string.IsNullOrEmpty(entry.Name))
+                        {
+                            entry.ExtractToFile(destPath, true);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return "Extraction error: " + ex.Message;
+            }
+
+            // Create desktop shortcut
+            try
+            {
+                Type shellType = Type.GetTypeFromProgID("WScript.Shell");
+                if (shellType != null)
+                {
+                    object shell = Activator.CreateInstance(shellType);
+                    string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+                    string shortcutFile = Path.Combine(desktopPath, "IObit Driver Booster.lnk");
+                    object shortcut = shellType.InvokeMember("CreateShortcut",
+                        System.Reflection.BindingFlags.InvokeMethod, null, shell, new object[] { shortcutFile });
+                    if (shortcut != null)
+                    {
+                        Type scType = shortcut.GetType();
+                        scType.InvokeMember("TargetPath", System.Reflection.BindingFlags.SetProperty, null, shortcut, new object[] { portableExe });
+                        scType.InvokeMember("WorkingDirectory", System.Reflection.BindingFlags.SetProperty, null, shortcut, new object[] { targetDir });
+                        scType.InvokeMember("Description", System.Reflection.BindingFlags.SetProperty, null, shortcut, new object[] { "IObit Driver Booster Portable" });
+                        scType.InvokeMember("Save", System.Reflection.BindingFlags.InvokeMethod, null, shortcut, null);
+                    }
+                }
+            }
+            catch { }
+
+            if (File.Exists(portableExe))
+            {
+                Process.Start(portableExe);
+                return "Extracted to " + targetDir + ", created Desktop shortcut, and launched Driver Booster!";
+            }
+
+            return "Extracted to " + targetDir + " but DriverBoosterPortable.exe was not found.";
         }
 
         private static string RunSilentCommand(string fileName, string arguments)

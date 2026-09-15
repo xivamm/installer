@@ -52,7 +52,9 @@ $references = @(
     "System.Core.dll",
     "System.Drawing.dll",
     "System.Windows.Forms.dll",
-    "System.Web.Extensions.dll"
+    "System.Web.Extensions.dll",
+    "System.IO.Compression.dll",
+    "System.IO.Compression.FileSystem.dll"
 )
 
 $refArgs = $references | ForEach-Object { "/r:$_" }

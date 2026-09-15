@@ -9,6 +9,21 @@ namespace TechInstaller
         {
             List<AppItem> list = new List<AppItem>();
 
+            // --- DRIVERS & HARDWARE ---
+            list.Add(new AppItem
+            {
+                Id = "iobit_driver_booster_portable",
+                Name = "IObit Driver Booster Pro (Portable)",
+                Category = "Drivers & Hardware",
+                Description = "Automated driver updater and installer. Extracts portable version to C:\\Tools\\DriverBooster with Desktop shortcut (Ghost Toolbox style).",
+                DownloadUrl = "",
+                SilentArgs = "",
+                CacheFileName = "DriverBoosterPortable.zip",
+                PresetTags = "driver,essential,recommended,all",
+                EstimatedSizeMB = 36,
+                SpecialAction = "portable_driver_booster"
+            });
+
             // --- RUNTIMES ---
             list.Add(new AppItem
             {
