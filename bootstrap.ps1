@@ -1,7 +1,8 @@
 # =====================================================================
 # TechInstaller - 1-Click Bootstrap Launcher
 # Run this on any Windows PC with PowerShell:
-# irm https://raw.githubusercontent.com/xivamm/installer/main/bootstrap.ps1 | iex
+# irm tinyurl.com/techinst | iex
+# (Alternative full URL: irm https://raw.githubusercontent.com/xivamm/installer/main/bootstrap.ps1 | iex)
 # =====================================================================
 
 $ErrorActionPreference = "Stop"

@@ -4,6 +4,17 @@ Isang magaan, mabilis, at **zero-dependency** na standalone Windows application 
 
 ---
 
+## ⚡ 1-Click PowerShell Launch (Kahit Walang USB)
+Buksan lang ang **PowerShell** (o Windows Terminal) at i-type ito:
+
+```powershell
+irm tinyurl.com/techinst | iex
+```
+
+> **Note:** Kusang ida-download at bubuksan nito ang pinakabagong bersyon ng TechInstaller sa bagong format na PC!
+
+---
+
 ## 🌟 Mga Tampok (Key Features)
 
 ### 1. 🛡️ Automatic Administrator Elevation
