@@ -9,16 +9,25 @@ echo   Repository: https://github.com/xivamm/installer
 echo ============================================================
 echo.
 
-echo [1/3] Checking git status...
+echo [1/4] Compiling latest binaries and packages...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build.ps1"
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERROR] Build failed. Aborting push.
+    pause
+    exit /b %ERRORLEVEL%
+)
+echo.
+
+echo [2/4] Checking pending git changes...
 git status --short
 echo.
 
-echo [2/3] Staging and committing changes...
+echo [3/4] Staging and committing changes...
 git add .
-git commit -m "Update TechInstaller: add portable driver booster download URL, sync assets, and update tools"
+git commit -m "Update TechInstaller: Cyber ASCII bootstrap with live animated loaders & synced portable packages"
 echo.
 
-echo [3/3] Pushing to GitHub (origin main)...
+echo [4/4] Pushing to GitHub (origin main)...
 git push -u origin main
 echo.
 
