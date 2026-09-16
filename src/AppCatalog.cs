@@ -16,7 +16,7 @@ namespace TechInstaller
                 Name = "IObit Driver Booster Pro (Portable)",
                 Category = "Drivers & Hardware",
                 Description = "Automated driver updater and installer. Extracts portable version to C:\\Tools\\DriverBooster with Desktop shortcut (Ghost Toolbox style).",
-                DownloadUrl = "",
+                DownloadUrl = "https://raw.githubusercontent.com/xivamm/installer/main/output/cache/DriverBoosterPortable.zip",
                 SilentArgs = "",
                 CacheFileName = "DriverBoosterPortable.zip",
                 PresetTags = "driver,essential,recommended,all",

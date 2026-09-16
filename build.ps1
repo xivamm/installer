@@ -123,6 +123,26 @@ if ($process.ExitCode -eq 0 -and (Test-Path $outFile)) {
     if (-not (Test-Path $cacheOut)) {
         New-Item -ItemType Directory -Path $cacheOut -Force | Out-Null
     }
+
+    # Package standalone TechInstaller-Portable.zip (excluding heavy cache files)
+    $portableZip = Join-Path $root "TechInstaller-Portable.zip"
+    $tempZipDir = Join-Path $env:TEMP "TechInstaller_Package"
+    if (Test-Path $tempZipDir) { Remove-Item $tempZipDir -Recurse -Force }
+    New-Item -ItemType Directory -Path $tempZipDir -Force | Out-Null
+
+    Copy-Item (Join-Path $outDir "TechInstaller.exe") $tempZipDir -Force
+    Copy-Item (Join-Path $outDir "apps.json") $tempZipDir -Force
+    Copy-Item (Join-Path $outDir "cloud_apps.json") $tempZipDir -Force
+    if (Test-Path (Join-Path $outDir "app.ico")) { Copy-Item (Join-Path $outDir "app.ico") $tempZipDir -Force }
+    if (Test-Path (Join-Path $outDir "run.bat")) { Copy-Item (Join-Path $outDir "run.bat") $tempZipDir -Force }
+    if (Test-Path (Join-Path $outDir "assets")) { Copy-Item (Join-Path $outDir "assets") $tempZipDir -Recurse -Force }
+    if (Test-Path (Join-Path $outDir "scripts")) { Copy-Item (Join-Path $outDir "scripts") $tempZipDir -Recurse -Force }
+
+    if (Test-Path $portableZip) { Remove-Item $portableZip -Force }
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    [System.IO.Compression.ZipFile]::CreateFromDirectory($tempZipDir, $portableZip, [System.IO.Compression.CompressionLevel]::Optimal, $false)
+    Remove-Item $tempZipDir -Recurse -Force
+    Write-Host "Portable package updated: TechInstaller-Portable.zip" -ForegroundColor Green
 } else {
     Write-Host "`n[ERROR] Build failed with exit code $($process.ExitCode)!" -ForegroundColor Red
     exit 1

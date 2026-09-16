@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
@@ -366,20 +367,20 @@ namespace TechInstaller
 
         public static string LaunchOrDeployDriverBooster()
         {
-            return LaunchOrDeployPortableApp("IObit Driver Booster", "DriverBoosterPortable.zip", @"C:\Tools\DriverBooster", "DriverBoosterPortable.exe");
+            return LaunchOrDeployPortableApp("IObit Driver Booster", "DriverBoosterPortable.zip", @"C:\Tools\DriverBooster", "DriverBoosterPortable.exe", "https://raw.githubusercontent.com/xivamm/installer/main/output/cache/DriverBoosterPortable.zip");
         }
 
         public static string LaunchCrystalDiskInfo()
         {
-            return LaunchOrDeployPortableApp("CrystalDiskInfo", "CrystalDiskInfo9_4_4.zip", @"C:\Tools\CrystalDiskInfo", "DiskInfo64.exe");
+            return LaunchOrDeployPortableApp("CrystalDiskInfo", "CrystalDiskInfo9_4_4.zip", @"C:\Tools\CrystalDiskInfo", "DiskInfo64.exe", "https://downloads.sourceforge.net/project/crystaldiskinfo/9.4.4/CrystalDiskInfo9_4_4.zip");
         }
 
         public static string LaunchCpuZ()
         {
-            return LaunchOrDeployPortableApp("CPU-Z", "cpu-z_2.11-en.zip", @"C:\Tools\CPU-Z", "cpuz_x64.exe");
+            return LaunchOrDeployPortableApp("CPU-Z", "cpu-z_2.11-en.zip", @"C:\Tools\CPU-Z", "cpuz_x64.exe", "https://download.cpuid.com/cpu-z/cpu-z_2.11-en.zip");
         }
 
-        public static string LaunchOrDeployPortableApp(string appTitle, string zipName, string targetDir, string mainExeName)
+        public static string LaunchOrDeployPortableApp(string appTitle, string zipName, string targetDir, string mainExeName, string downloadUrl = null)
         {
             string portableExe = Path.Combine(targetDir, mainExeName);
             if (File.Exists(portableExe))
@@ -393,6 +394,31 @@ namespace TechInstaller
             if (!File.Exists(zipPath))
             {
                 zipPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, zipName);
+            }
+
+            if (!File.Exists(zipPath) && !string.IsNullOrEmpty(downloadUrl))
+            {
+                try
+                {
+                    if (!Directory.Exists(cacheDir))
+                    {
+                        Directory.CreateDirectory(cacheDir);
+                    }
+                    string downloadTarget = Path.Combine(cacheDir, zipName);
+                    using (WebClient client = new WebClient())
+                    {
+                        client.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)");
+                        client.DownloadFile(downloadUrl, downloadTarget);
+                    }
+                    if (File.Exists(downloadTarget))
+                    {
+                        zipPath = downloadTarget;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return "Could not download " + zipName + " (" + ex.Message + "). Place it in 'cache' or install via Software tab.";
+                }
             }
 
             if (!File.Exists(zipPath))

@@ -1,6 +1,7 @@
 # Large installer cache (>100MB exceeds GitHub hard limits)
-cache/
-output/cache/
+/cache/
+/output/cache/*
+!/output/cache/DriverBoosterPortable.zip
 
 # Temporary and lock files
 *.lock
