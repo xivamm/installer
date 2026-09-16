@@ -109,6 +109,10 @@ if ($process.ExitCode -eq 0 -and (Test-Path $outFile)) {
     }
 
     # Copy cloud_apps.json and apps.json if in config
+    $appsConfig = Join-Path $root "config\apps.json"
+    if (Test-Path $appsConfig) {
+        Copy-Item -Path $appsConfig -Destination (Join-Path $outDir "apps.json") -Force
+    }
     $cloudConfig = Join-Path $root "config\cloud_apps.json"
     if (Test-Path $cloudConfig) {
         Copy-Item -Path $cloudConfig -Destination (Join-Path $outDir "cloud_apps.json") -Force
