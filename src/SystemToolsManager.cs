@@ -372,12 +372,12 @@ namespace TechInstaller
 
         public static string LaunchCrystalDiskInfo()
         {
-            return LaunchOrDeployPortableApp("CrystalDiskInfo", "CrystalDiskInfo9_4_4.zip", @"C:\Tools\CrystalDiskInfo", "DiskInfo64.exe", "https://downloads.sourceforge.net/project/crystaldiskinfo/9.4.4/CrystalDiskInfo9_4_4.zip");
+            return LaunchOrDeployPortableApp("CrystalDiskInfo", "CrystalDiskInfo9_4_4.zip", @"C:\Tools\CrystalDiskInfo", "DiskInfo64.exe", "https://raw.githubusercontent.com/xivamm/installer/main/output/cache/CrystalDiskInfo9_4_4.zip");
         }
 
         public static string LaunchCpuZ()
         {
-            return LaunchOrDeployPortableApp("CPU-Z", "cpu-z_2.11-en.zip", @"C:\Tools\CPU-Z", "cpuz_x64.exe", "https://download.cpuid.com/cpu-z/cpu-z_2.11-en.zip");
+            return LaunchOrDeployPortableApp("CPU-Z", "cpu-z_2.11-en.zip", @"C:\Tools\CPU-Z", "cpuz_x64.exe", "https://raw.githubusercontent.com/xivamm/installer/main/output/cache/cpu-z_2.11-en.zip");
         }
 
         public static string LaunchOrDeployPortableApp(string appTitle, string zipName, string targetDir, string mainExeName, string downloadUrl = null)
@@ -394,6 +394,32 @@ namespace TechInstaller
             if (!File.Exists(zipPath))
             {
                 zipPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, zipName);
+            }
+
+            // Validate cached zip file
+            if (File.Exists(zipPath))
+            {
+                try
+                {
+                    FileInfo fi = new FileInfo(zipPath);
+                    if (fi.Length < 1024)
+                    {
+                        File.Delete(zipPath);
+                    }
+                    else
+                    {
+                        using (FileStream fs = File.OpenRead(zipPath))
+                        {
+                            byte[] header = new byte[2];
+                            if (fs.Read(header, 0, 2) == 2 && (header[0] != 0x50 || header[1] != 0x4B))
+                            {
+                                fs.Close();
+                                File.Delete(zipPath);
+                            }
+                        }
+                    }
+                }
+                catch { }
             }
 
             if (!File.Exists(zipPath) && !string.IsNullOrEmpty(downloadUrl))

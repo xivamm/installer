@@ -362,6 +362,34 @@ namespace TechInstaller
                 }
             }
 
+            // Validate that existing file is a genuine zip archive, not a corrupted HTML error page
+            if (File.Exists(zipPath))
+            {
+                try
+                {
+                    FileInfo fi = new FileInfo(zipPath);
+                    if (fi.Length < 1024)
+                    {
+                        Log(string.Format("Cached file {0} is too small. Re-downloading...", app.CacheFileName), LogLevel.Warning);
+                        File.Delete(zipPath);
+                    }
+                    else
+                    {
+                        using (FileStream fs = File.OpenRead(zipPath))
+                        {
+                            byte[] header = new byte[2];
+                            if (fs.Read(header, 0, 2) == 2 && (header[0] != 0x50 || header[1] != 0x4B))
+                            {
+                                Log(string.Format("Cached file {0} is not a valid zip archive (received HTML/error page). Re-downloading...", app.CacheFileName), LogLevel.Warning);
+                                fs.Close();
+                                File.Delete(zipPath);
+                            }
+                        }
+                    }
+                }
+                catch { }
+            }
+
             if (!File.Exists(zipPath))
             {
                 if (string.IsNullOrEmpty(app.DownloadUrl))
@@ -490,8 +518,8 @@ namespace TechInstaller
 
             if (string.IsNullOrEmpty(targetExe) || !File.Exists(targetExe))
             {
-                Log("Warning: Could not locate main executable inside extracted folder.", LogLevel.Warning);
-                return true;
+                Log("Error: Could not locate main executable inside extracted folder.", LogLevel.Error);
+                return false;
             }
 
             // Create Desktop Shortcut
